@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Alchemy local state and build output
+.alchemy/
+.wrangler/
+
+# Env
+.env
+.env.*
+!.env.example
+
+.DS_Store
