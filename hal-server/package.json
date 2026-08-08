@@ -8,7 +8,8 @@
     "dev": "alchemy dev",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config ./vitest.integration.config.ts"
   },
   "dependencies": {
     "alchemy": "2.0.0-beta.67",

@@ -1,6 +1,19 @@
 import * as Cloudflare from "alchemy/Cloudflare";
-import { formatEcho, type EchoReply } from "hal-shared/echo";
+import { Schema } from "effect";
 import * as Effect from "effect/Effect";
+
+const EchoSchema = Schema.Struct({
+  text: Schema.String,
+  seq: Schema.Number,
+  sessionId: Schema.String,
+});
+
+export class Echo extends Schema.Class<Echo>("Echo")(EchoSchema) {
+  static formatEcho(text: string) {
+    const formatted = text.trim().replace(/\s+/g, " ");
+    return formatted;
+  }
+}
 
 /**
  * Phase 0 stand-in for `SessionDO`.
@@ -34,7 +47,7 @@ export default class Session extends Cloudflare.Workers.DurableObject<Session>()
         echo: (text: string) =>
           Effect.gen(function* () {
             const seq = yield* nextSeq;
-            const reply: EchoReply = { text: formatEcho(text), seq, sessionId };
+            const reply: Echo = { text: Echo.formatEcho(text), seq, sessionId };
             return reply;
           }),
 
