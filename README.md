@@ -35,7 +35,9 @@ abilities its job needs and has no way to express anything else — enforced by
 the requirements channel, not by prompt instructions, because prompts can be
 talked out of things.
 
-The full argument and design live in [`docs/design.md`](./docs/design.md).
+The full design is in [`docs/sdd.md`](./docs/sdd.md), the argument behind it in
+[`docs/event-log-thesis.md`](./docs/event-log-thesis.md), and the short form —
+where we are and what is settled — in [`docs/design.md`](./docs/design.md).
 
 ## Status: Phase 0 — foundation
 

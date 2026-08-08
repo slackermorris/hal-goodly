@@ -1,18 +1,20 @@
 # Design
 
-The source-of-truth design document for Hal lives in the Kwicherbelliaken
-vault, alongside the thinking that produced it:
+The design documents live here, copied from the Kwicherbelliaken vault alongside
+the thinking that produced them:
 
-- **`Hal SDD.md`** — the software design document: problem, requirements,
+- **[`sdd.md`](./sdd.md)** — the software design document: problem, requirements,
   constraints, module design, the nine delivery phases with their exit tests,
-  risks, and test specifications.
-- **`The session event log is the primitive the personal agent should be built
-on.md`** — the architectural argument, in prose.
-- **`Hal References.md`** — the bibliography, grouped by what each source
-  contributed.
+  risks, and test specifications. **This is the one to change when the design
+  changes**, and the copy in the vault follows it rather than the other way
+  round.
+- **[`event-log-thesis.md`](./event-log-thesis.md)** — the architectural
+  argument, in prose. Historical: it is the reasoning that produced the SDD, not
+  a document kept current. Where the two disagree, the SDD wins.
+- **[`references.md`](./references.md)** — the working links. The full annotated
+  bibliography stays in the vault as `Hal References.md`.
 
-Those are the documents to change when the design changes. This file exists so
-the repo points at them rather than drifting a second copy.
+This file is the short form: where we are, and which decisions are settled.
 
 ## Where we are
 
