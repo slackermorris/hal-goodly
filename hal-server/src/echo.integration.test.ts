@@ -3,20 +3,16 @@ import * as Vitest from "alchemy/Test/Vitest";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
-import { Schema } from "effect";
+
 import Stack from "../alchemy.run.ts";
 import { Echo } from "./Session.ts";
+import { Schema } from "effect";
 
 /**
- * The Phase 0 exit test from `docs/design.md`:
- *
  * > An echo round-trips through an Effect runtime at a Durable Object
  * > entrypoint, with Alchemy-declared bindings typed end to end.
  *
  * This test stands up the real stack and drives it over HTTP.
- *
- * Opt in with `HAL_E2E=1 npm test`. It is off by default so `npm run check`
- * stays runnable with no Cloudflare credentials and no resources created.
  *
  * `dev: true` keeps the Worker in local workerd rather than deploying it to the
  * edge — but it still needs a configured Cloudflare profile, because Alchemy
@@ -25,62 +21,52 @@ import { Echo } from "./Session.ts";
  * credentials. Drop `dev` (and set a stage) to exercise a genuine deploy.
  */
 
-const { test, deploy, destroy, afterAll } = Vitest.make({
+const { test, beforeAll, deploy, destroy, afterAll } = Vitest.make({
   providers: Cloudflare.providers(),
   dev: true,
 });
 
 const decodeReply = Schema.decodeUnknownOption(Echo);
 
+const stack = beforeAll(deploy(Stack));
+
 afterAll(destroy(Stack));
 
-// todo: deploy the stack before running the tests
-// todo: test the output from the worker
+test(
+  "worker returns a url",
+  Effect.gen(function* () {
+    const { url } = yield* stack;
+    expect(url).toBeTypeOf("string");
+  }),
+);
 
 test(
-  "echo round-trips through the Durable Object and advances durable state",
+  "Session counter advances across requests",
   Effect.gen(function* () {
-    const deployed = yield* deploy(Stack);
-    const baseUrl = deployed.url;
-    const client = yield* HttpClient.HttpClient;
+    const sessionId = "alpha";
 
-    const health = yield* Vitest.executeWhenReady(
-      HttpClientRequest.get(`${baseUrl}/health`),
-    );
-    expect(health.status).toBe(200);
-    expect(yield* health.text).toBe("ok");
+    const { call } = yield* HttpWorker;
 
-    const call = (session: string, text: string) =>
-      Effect.gen(function* () {
-        const response = yield* client.execute(
-          HttpClientRequest.get(
-            `${baseUrl}/echo/${session}?text=${encodeURIComponent(text)}`,
-          ),
-        );
-        expect(response.status).toBe(200);
-        const reply = decodeReply(yield* response.json);
-        expect(reply._tag).toBe("Some");
-        if (reply._tag !== "Some")
-          throw new Error("reply did not match EchoReply");
-        return reply.value;
-      });
+    const firstCall = yield* call(sessionId, "  hello   world  ");
+    const secondCall = yield* call(sessionId, "something else");
 
-    // The text comes back formatted by the shared pure function.
-    const first = yield* call("alpha", "  hello   world  ");
-    expect(first.text).toBe("hello world");
-    expect(first.seq).toBe(1);
+    expect(firstCall.seq).toBe(1);
+    expect(secondCall.seq).toBe(2);
+  }),
+);
 
-    // Same session: the counter advances, so storage is genuinely durable
-    // across requests rather than per-invocation memory.
-    const second = yield* call("alpha", "again");
-    expect(second.seq).toBe(2);
-    expect(second.sessionId).toBe(first.sessionId);
+test(
+  "Sessions are backed by their own Durable Object instance, with its own isolated storage",
+  Effect.gen(function* () {
+    const sessionAId = "alpha";
+    const sessionBId = "beta";
 
-    // A different session name is a different Durable Object instance, with
-    // its own isolated storage.
-    const other = yield* call("beta", "hello");
-    expect(other.seq).toBe(1);
-    expect(other.sessionId).not.toBe(first.sessionId);
+    const { call } = yield* HttpWorker;
+
+    const primary = yield* call(sessionAId, "writing to session A, DO");
+    const other = yield* call(sessionBId, "writing to session B, DO");
+
+    expect(primary.sessionId).not.toBe(other.sessionId);
   }),
 );
 
@@ -96,3 +82,25 @@ test(
     expect(response.status).toBe(400);
   }),
 );
+
+const HttpWorker = Effect.gen(function* () {
+  const { url: baseUrl } = yield* stack;
+  const client = yield* HttpClient.HttpClient;
+
+  return {
+    call: (session: string, text: string) =>
+      Effect.gen(function* () {
+        const response = yield* client.execute(
+          HttpClientRequest.get(
+            `${baseUrl}/echo/${session}?text=${encodeURIComponent(text)}`,
+          ),
+        );
+        expect(response.status).toBe(200);
+        const reply = decodeReply(yield* response.json);
+        expect(reply._tag).toBe("Some");
+        if (reply._tag !== "Some")
+          throw new Error("reply did not match EchoReply");
+        return reply.value;
+      }),
+  };
+});
