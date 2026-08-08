@@ -43,7 +43,7 @@ runtime, one dependency instead of two overlapping ones.
 
 When running the stack locally, anything that cannot sensibly be emulated is
 deployed to Cloudflare for real. You can observe it appearing in the Cloudflare
-console. Worth internalising early — "local" here means *mostly* local, and the
+console. Worth internalising early — "local" here means _mostly_ local, and the
 things that escape emulation are exactly the ones with account-level state.
 
 ## Proving the cursor
@@ -58,9 +58,9 @@ timestamp, not an ID, not ordering by arrival.
 
 ```typescript
 const nextSeq = Effect.gen(function* () {
-  const previous = (yield* state.storage.get<number>("seq")) ?? 0;
+  const previous = (yield* state.storage.get<number>('seq')) ?? 0;
   const seq = previous + 1;
-  yield* state.storage.put("seq", seq);
+  yield* state.storage.put('seq', seq);
   return seq;
 });
 ```
