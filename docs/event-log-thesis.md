@@ -43,19 +43,19 @@ events(seq INTEGER PRIMARY KEY, ts, actor, kind, trace_id, span_id, payload JSON
 
 Look at what falls out of that one table:
 
-| Requirement | Becomes |
-|---|---|
-| Streaming | Append deltas; readers tail |
-| Multiplayer | N WebSockets tailing one log |
-| Reconnect / resumable streams | A cursor — client sends `since=seq`, you replay |
-| Async job reports back later | Task appends `task.completed`; log fan-out notifies |
-| "Where is effort being spent" | `SELECT kind, SUM(payload->>'cost_usd') GROUP BY kind` |
-| OTel | Every event already carries `trace_id`/`span_id` — export, don't reinvent |
-| Recording the changes | Events reference R2 artifacts (diffs, screenshots, traces) |
-| Lifecycle control | Compaction and retention policy on one table |
+| Requirement                   | Becomes                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| Streaming                     | Append deltas; readers tail                                               |
+| Multiplayer                   | N WebSockets tailing one log                                              |
+| Reconnect / resumable streams | A cursor — client sends `since=seq`, you replay                           |
+| Async job reports back later  | Task appends `task.completed`; log fan-out notifies                       |
+| "Where is effort being spent" | `SELECT kind, SUM(payload->>'cost_usd') GROUP BY kind`                    |
+| OTel                          | Every event already carries `trace_id`/`span_id` — export, don't reinvent |
+| Recording the changes         | Events reference R2 artifacts (diffs, screenshots, traces)                |
+| Lifecycle control             | Compaction and retention policy on one table                              |
 
 This is why streaming and durable execution stopped fighting: the sub-agent never
-streams *to a client*. It streams *to the log*. Clients and durable execution are both
+streams _to a client_. It streams _to the log_. Clients and durable execution are both
 readers. That single inversion dissolves the problem that stalled attempt two.
 
 The corollary matters as much as the thesis: **the log is the source of truth, not the
@@ -112,15 +112,15 @@ model must not tie a session to one author, and every prompt must carry authorsh
 own note wanted "clients have their own session unless invited" — that requires session
 identity to be independent of user identity.
 
-`TaskDO` is the piece attempt two was missing. It is a *durable state machine that owns
-one sandbox*. One task, one sandbox, one lifetime, one owner. That is the entire
+`TaskDO` is the piece attempt two was missing. It is a _durable state machine that owns
+one sandbox_. One task, one sandbox, one lifetime, one owner. That is the entire
 lifecycle story, and it is enforceable rather than aspirational.
 
 ## Where Effect actually earns its keep
 
 Your earlier note worried Effect was a technology chosen before you knew what you were
 building. That worry was right then and is wrong now, because this design has four
-requirements that map onto Effect's *differentiating* features rather than its nice ones.
+requirements that map onto Effect's _differentiating_ features rather than its nice ones.
 
 **1. `Layer` is the capability model.** This is the headline. Kenton's capability-first
 argument in _Cloudflare has assembled a complete primitive stack for running AI agents safely at the edge_
@@ -130,11 +130,11 @@ privileges:
 
 ```typescript
 // illustrative
-const reviewAgent: Effect<Findings, ReviewError, ReadOnlyDiff | SessionLog | Tracer>
-const implementAgent: Effect<Patch, ImplError, GitTools | SandboxExec | SessionLog | Tracer>
+const reviewAgent: Effect<Findings, ReviewError, ReadOnlyDiff | SessionLog | Tracer>;
+const implementAgent: Effect<Patch, ImplError, GitTools | SandboxExec | SessionLog | Tracer>;
 ```
 
-The reviewer cannot reach `GitTools`. Not "is prompted not to" — *cannot*, because the
+The reviewer cannot reach `GitTools`. Not "is prompted not to" — _cannot_, because the
 program does not typecheck if it tries, and nothing at the call site can provide it.
 Least privilege becomes a compile error. No other option on the table gives you that.
 
@@ -146,8 +146,8 @@ answer. Sandboxes are billed per second; a leaked container is a bill.
 const sandbox = (flavour: Flavour) =>
   Effect.acquireRelease(
     createSandbox(flavour),
-    (sb) => Effect.orDie(destroySandbox(sb))   // runs on success, failure, AND interrupt
-  )
+    (sb) => Effect.orDie(destroySandbox(sb)), // runs on success, failure, AND interrupt
+  );
 ```
 
 The finaliser runs on interruption, which is exactly the case that leaks in a
@@ -183,7 +183,7 @@ creates an isolated runtime that does not inherit the `ConfigProvider`.
 2. Effect gives you retry, backoff, timeout, and scheduling as composable values. That is
    most of what `step.do()` buys.
 3. What Workflows uniquely add is durable execution across eviction — but a DO with
-   SQLite and alarms *is* durable execution across eviction. You are not missing a
+   SQLite and alarms _is_ durable execution across eviction. You are not missing a
    primitive, you are missing a table.
 4. `step.do(() => Effect.runPromise(...))` throws away Effect's interruption semantics at
    every step boundary. Two competing orchestration models is worse than one you own.
@@ -194,15 +194,15 @@ What replaces it is genuinely small — a steps table and a check-before-run:
 // illustrative
 const step = <A>(name: string, work: Effect<A, TaskError, R>) =>
   Effect.gen(function* () {
-    const cached = yield* Steps.get(name)
-    if (cached._tag === "Done") return cached.value as A
+    const cached = yield* Steps.get(name);
+    if (cached._tag === 'Done') return cached.value as A;
     const value = yield* work.pipe(
       Effect.withSpan(`step.${name}`),
-      Effect.retry(Schedule.exponential("1 second").pipe(Schedule.recurs(3)))
-    )
-    yield* Steps.complete(name, value)
-    return value
-  })
+      Effect.retry(Schedule.exponential('1 second').pipe(Schedule.recurs(3))),
+    );
+    yield* Steps.complete(name, value);
+    return value;
+  });
 ```
 
 That is your `step.do()`, it is ~40 lines, it composes with everything else, and you
@@ -239,8 +239,8 @@ Sandboxes for the same reasons you would (programmatic lifecycle, explicit egres
 - **plan** — small, read-only checkout, no network beyond the model. Produces a task
   breakdown.
 - **implement** — the full stack. Pulls the repo, edits, runs the test suite.
-- **verify** — separate and smaller, with browser tooling. Crucially it runs as a *true
-  client* against the implement sandbox's preview URL rather than inside it. WorkOS made
+- **verify** — separate and smaller, with browser tooling. Crucially it runs as a _true
+  client_ against the implement sandbox's preview URL rather than inside it. WorkOS made
   exactly this move, and it is what lets a verification agent be adversarial: it has no
   write access to the thing it is judging.
 
@@ -258,13 +258,13 @@ one user.
 
 ## Quality gates as typed values, and the adversarial panel
 
-Make a gate a *value*, not a prompt:
+Make a gate a _value_, not a prompt:
 
 ```typescript
 // illustrative
 interface Gate {
-  readonly name: string
-  readonly run: Effect<GateResult, GateError, SandboxExec | SessionLog | Tracer>
+  readonly name: string;
+  readonly run: Effect<GateResult, GateError, SandboxExec | SessionLog | Tracer>;
 }
 ```
 
@@ -272,8 +272,8 @@ Then composition is ordinary Effect. Run the cheap deterministic gates concurren
 short-circuit before spending money on the expensive ones:
 
 ```typescript
-const cheap  = Effect.all([lint, typecheck, unitTests], { concurrency: "unbounded" })
-const costly = Effect.all([previewScreenshots, reviewPanel], { concurrency: 2 })
+const cheap = Effect.all([lint, typecheck, unitTests], { concurrency: 'unbounded' });
+const costly = Effect.all([previewScreenshots, reviewPanel], { concurrency: 2 });
 ```
 
 A failing gate returns **structured findings**, not prose — that is what makes it a
@@ -281,7 +281,7 @@ feedback control rather than a log line. The implement agent consumes findings a
 and retries.
 
 **The adversarial pattern, done properly:** the failure mode of N reviewers is that they
-all find the same thing. Give each a distinct *lens* and prompt each to **refute** that
+all find the same thing. Give each a distinct _lens_ and prompt each to **refute** that
 the change is correct, defaulting to "refuted" under uncertainty. Kill the PR on majority
 refute and feed findings back.
 
@@ -291,7 +291,7 @@ each lens becomes a reviewer agent in its own verify-flavour sandbox with read-o
 access, and `mr-review` becomes the skill package that defines the panel.
 
 Gate the panel on risk — diff size, paths touched — and record `effort.cost_usd` per gate
-so you can *measure* whether the panel is worth what it costs. That decision should be
+so you can _measure_ whether the panel is worth what it costs. That decision should be
 data, and the observability layer is what makes it data.
 
 ## Skills as Artifacts packages
@@ -318,7 +318,7 @@ intercepts every request leaving the sandbox, checks the destination against the
 allowlist, and substitutes the real value only if that domain is approved for that
 secret. Wrong domain gets an error, not a token.
 
-So the registry stores **capability descriptors — never values**: which secret *names* this
+So the registry stores **capability descriptors — never values**: which secret _names_ this
 agent type may reference, which hosts it may reach, which model, which sandbox flavour.
 Values live in Worker Secrets, resolved only inside the Outbound Worker. D1 becomes
 non-sensitive and your encryption concern evaporates.
@@ -369,7 +369,7 @@ it lives. You get multi-device the moment you have `SessionDO` — no VPN involv
   provision the Access application and policies as Effect resources — that is literally
   what the `Cloudflare.Access.Policy` code in your Alchemy screenshot is doing, and it is
   how you get an agent identity distinct from your human identity.
-- **Moshi** earns its place as a *third client* — a roaming-tolerant terminal into the
+- **Moshi** earns its place as a _third client_ — a roaming-tolerant terminal into the
   implement sandbox for when you want to drive it by hand from a laptop on bad wifi. Nice,
   not load-bearing.
 - **Tailscale** is only needed if something runs at home. Cloudflare Mesh / Workers VPC is
@@ -400,7 +400,7 @@ than an afterthought.
 ## Alchemy: infra as Effect
 
 The point of _Alchemy For Effect_ — and of Maxwell Brown's framing — is that you write
-Effect to describe infra and then *use those same resource handles in your program*. So a
+Effect to describe infra and then _use those same resource handles in your program_. So a
 single `infra/` Effect program declares DO namespaces, D1, R2, sandbox flavour configs, AI
 Gateway, Access policies and service tokens, Artifacts namespaces — and returns typed
 handles your application depends on. No drift between `wrangler.jsonc` and `env.d.ts`,
@@ -408,7 +408,7 @@ because there is one source.
 
 This is also the lifecycle story at the infra tier: Alchemy tracks resource state, so
 teardown of a scope is real, and per-branch ephemeral stacks become cheap. That matters
-here because each sandbox flavour *is* infrastructure.
+here because each sandbox flavour _is_ infrastructure.
 
 Caveats worth pricing in: Alchemy is young and its Effect integration is very new (July
 2026); Durable Object migrations — class renames, SQLite schema changes — are the sharp
@@ -452,7 +452,7 @@ source of a nasty surprise. Hold the rule hard: runtime per-invocation, all trut
 SQLite.
 
 **Sandbox cost.** Per-second billing plus an agent that can spawn sub-agents is a real
-money risk. `Scope` finaliser *and* a TTL reaper alarm *and* a per-session concurrency cap.
+money risk. `Scope` finaliser _and_ a TTL reaper alarm _and_ a per-session concurrency cap.
 
 **Event log growth.** Compaction is not optional; see above.
 

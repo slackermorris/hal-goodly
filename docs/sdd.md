@@ -127,7 +127,7 @@ access fails to compile. Workers Workflows are deliberately not used; durable ex
 a checkpoint table plus alarms, which is a primitive small enough to own.
 
 **The biggest risk is not architectural, it is compound novelty.** Effect v4 in beta,
-Alchemy 2 in beta supplying *both* the infrastructure and the Cloudflare runtime,
+Alchemy 2 in beta supplying _both_ the infrastructure and the Cloudflare runtime,
 Cloudflare's own young agent primitives, and a from-scratch rebuild of everything the
 framework previously provided — all at once, by one person. The mitigation is the phase
 plan: the first three phases contain no AI at all and exist purely to falsify the
@@ -143,8 +143,8 @@ they stopped. Two officers reading the same log stay in sync without talking to 
 other. A log read a month later still says what happened, and — because each entry is
 stamped — it also says how long each thing took and what it consumed.
 
-That reframing is the whole design. The sub-agent doing work does not send progress *to
-you*; it writes entries. Your laptop, your phone, the task state machine, and the
+That reframing is the whole design. The sub-agent doing work does not send progress _to
+you_; it writes entries. Your laptop, your phone, the task state machine, and the
 telemetry pipeline are all just readers at different positions. Nothing needs to know who
 else is watching, which is why multiplayer costs almost nothing to add, and why a dropped
 connection is a bookmark rather than a failure.
@@ -227,30 +227,30 @@ both good: one dependency instead of two with overlapping Durable Object abstrac
 **the four boundaries this document previously flagged as unwrapped are covered.** The
 `effect-cf` dependency and its associated risk are struck.
 
-| Module | Owns | Borrowed / built |
-|---|---|---|
-| **InfraStack** | Every Cloudflare resource declared in Effect; exports the typed handles the app consumes | Alchemy |
-| **SessionLog** ★ | Append, read-from-cursor, compact. The events schema. The only writer of conversation truth | Built on borrowed DO storage |
-| **Telemetry** | Span conventions, the `effort.*` attribute set, correlation ids joining spans to gateway records | Built on Effect's tracer |
-| **Capabilities** | The tagged interfaces sub-agents depend on — read a diff, exec in a sandbox, use git, drive a browser. *This is the security model* | Built |
-| **SandboxLease** ★ | Acquire/release of one sandbox flavour, scope-bound, plus an independent reaper | Built on borrowed containers |
-| **SecretBroker** ★ | Egress allowlist and credential substitution at the network layer | Built (separate Worker) |
-| **AgentRegistry** | Capability descriptors per agent type: model, flavour, allowed hosts, secret *names* | Built on borrowed D1 |
-| **ModelGateway** | Model calls through AI Gateway as an Effect service, streaming deltas to a log | Built on borrowed AI Gateway |
-| **SessionDO** | The log, socket fan-out, participants, turn loop | Built on borrowed DO + hibernation |
-| **TaskDO** | Durable state machine for one task; owns one lease | Built on borrowed DO + alarms |
-| **UserDO** | Identity, session index, notification channels, schedule table | Built on borrowed DO + alarms |
-| **DurableStep** | Run-once-and-remember, retry policy, resume after eviction. The workflow replacement | Built |
-| **TurnLoop** | Assemble context from the log, call the model, stream deltas, dispatch tool calls | Built |
-| **Dispatcher** | Tool call → registry lookup → TaskDO with unforgeable authorisation context | Built |
-| **Gate** ★ | A quality gate as a value returning structured findings | Built |
-| **ReviewPanel** | Independent lenses, refute-by-default, majority verdict, cost recorded per lens | Built |
-| **SkillPackage** | Resolve a versioned skill into a sandbox | Built on Artifacts |
-| **ArtifactStore** | Diffs, screenshots, traces, videos as durable evidence referenced from the log | Built on borrowed R2 |
-| **ScheduleRunner** | Recurrence described declaratively, executed by an alarm | Built |
-| **WebhookIngress** | Signature verification; normalise external events into work items | Built |
-| **Notifier** | Reach me when no socket is connected | Built |
-| **Web client** | Chat, cursor-based resume, and an effort view | Built |
+| Module             | Owns                                                                                                                                | Borrowed / built                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **InfraStack**     | Every Cloudflare resource declared in Effect; exports the typed handles the app consumes                                            | Alchemy                            |
+| **SessionLog** ★   | Append, read-from-cursor, compact. The events schema. The only writer of conversation truth                                         | Built on borrowed DO storage       |
+| **Telemetry**      | Span conventions, the `effort.*` attribute set, correlation ids joining spans to gateway records                                    | Built on Effect's tracer           |
+| **Capabilities**   | The tagged interfaces sub-agents depend on — read a diff, exec in a sandbox, use git, drive a browser. _This is the security model_ | Built                              |
+| **SandboxLease** ★ | Acquire/release of one sandbox flavour, scope-bound, plus an independent reaper                                                     | Built on borrowed containers       |
+| **SecretBroker** ★ | Egress allowlist and credential substitution at the network layer                                                                   | Built (separate Worker)            |
+| **AgentRegistry**  | Capability descriptors per agent type: model, flavour, allowed hosts, secret _names_                                                | Built on borrowed D1               |
+| **ModelGateway**   | Model calls through AI Gateway as an Effect service, streaming deltas to a log                                                      | Built on borrowed AI Gateway       |
+| **SessionDO**      | The log, socket fan-out, participants, turn loop                                                                                    | Built on borrowed DO + hibernation |
+| **TaskDO**         | Durable state machine for one task; owns one lease                                                                                  | Built on borrowed DO + alarms      |
+| **UserDO**         | Identity, session index, notification channels, schedule table                                                                      | Built on borrowed DO + alarms      |
+| **DurableStep**    | Run-once-and-remember, retry policy, resume after eviction. The workflow replacement                                                | Built                              |
+| **TurnLoop**       | Assemble context from the log, call the model, stream deltas, dispatch tool calls                                                   | Built                              |
+| **Dispatcher**     | Tool call → registry lookup → TaskDO with unforgeable authorisation context                                                         | Built                              |
+| **Gate** ★         | A quality gate as a value returning structured findings                                                                             | Built                              |
+| **ReviewPanel**    | Independent lenses, refute-by-default, majority verdict, cost recorded per lens                                                     | Built                              |
+| **SkillPackage**   | Resolve a versioned skill into a sandbox                                                                                            | Built on Artifacts                 |
+| **ArtifactStore**  | Diffs, screenshots, traces, videos as durable evidence referenced from the log                                                      | Built on borrowed R2               |
+| **ScheduleRunner** | Recurrence described declaratively, executed by an alarm                                                                            | Built                              |
+| **WebhookIngress** | Signature verification; normalise external events into work items                                                                   | Built                              |
+| **Notifier**       | Reach me when no socket is connected                                                                                                | Built                              |
+| **Web client**     | Chat, cursor-based resume, and an effort view                                                                                       | Built                              |
 
 Five modules are deep — a stable interface hiding real machinery, testable in isolation:
 `SessionLog`, `SandboxLease`, `SecretBroker`, `Gate`, `DurableStep`. Those five are where
@@ -268,44 +268,48 @@ Each phase has an exit test. The ordering is deliberate: **the log and the telem
 before the intelligence**, because neither can be retrofitted and neither needs a model to
 validate.
 
-| Phase | Scope | Exit test |
-|---|---|---|
-| **0 — Foundation** — *delivered, see below* | Monorepo, Effect v4, Alchemy 2 stack provisioning one Worker and one Durable Object | An echo round-trips through an Effect runtime at a DO entrypoint, with Alchemy-declared bindings typed end to end |
-| **1 — The spine** | `SessionLog`, `SessionDO`, hibernating socket fan-out, replay from cursor, participants. **No AI.** | Two clients, one session. Kill one mid-exchange; on reconnect it replays exactly what it missed, in order, with correct attribution |
-| **2 — Observability** | `Telemetry`, `effort.*` conventions, OTel export, local effort query over the log | A span tree for a whole session, with effort attributed per span. Costs are zero — the point is that the plumbing is proven |
-| **3 — First turn** | `ModelGateway`, `TurnLoop`, deltas batched into the log, compaction on turn end | A real streamed conversation that survives a mid-stream disconnect, and whose token cost appears in the effort query |
-| **4 — Lifecycle** | `SandboxLease` under scope, TTL reaper, `TaskDO`, `DurableStep` | Kill the fiber mid-run: no orphan container. Evict the DO mid-run: the reaper catches it. Resume: completed steps do not re-run |
-| **5 — First real task** | `SecretBroker`, `AgentRegistry`, git capability, clone → change → push → PR | A merged pull request where the sandbox never held a credential, provable from the broker's logs |
-| **6 — Gates** | `Gate`, lint/typecheck/test gates, preview screenshots, `ArtifactStore` | A PR that arrives carrying its own evidence, and a failing gate whose structured findings drive a successful retry |
-| **7 — Adversarial review** | `ReviewPanel`, lenses, refute-by-default, `SkillPackage` (`mr-review`) | A panel that catches a defect the deterministic gates passed, with per-lens cost recorded so the panel can be judged on value |
-| **8 — Autonomy** | `ScheduleRunner`, `WebhookIngress`, `Notifier` | An external event, with no human in the loop at the start, produces a reviewable PR and a notification |
+| Phase                                       | Scope                                                                                               | Exit test                                                                                                                           |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **0 — Foundation** — _delivered, see below_ | Monorepo, Effect v4, Alchemy 2 stack provisioning one Worker and one Durable Object                 | An echo round-trips through an Effect runtime at a DO entrypoint, with Alchemy-declared bindings typed end to end                   |
+| **1 — The spine**                           | `SessionLog`, `SessionDO`, hibernating socket fan-out, replay from cursor, participants. **No AI.** | Two clients, one session. Kill one mid-exchange; on reconnect it replays exactly what it missed, in order, with correct attribution |
+| **2 — Observability**                       | `Telemetry`, `effort.*` conventions, OTel export, local effort query over the log                   | A span tree for a whole session, with effort attributed per span. Costs are zero — the point is that the plumbing is proven         |
+| **3 — First turn**                          | `ModelGateway`, `TurnLoop`, deltas batched into the log, compaction on turn end                     | A real streamed conversation that survives a mid-stream disconnect, and whose token cost appears in the effort query                |
+| **4 — Lifecycle**                           | `SandboxLease` under scope, TTL reaper, `TaskDO`, `DurableStep`                                     | Kill the fiber mid-run: no orphan container. Evict the DO mid-run: the reaper catches it. Resume: completed steps do not re-run     |
+| **5 — First real task**                     | `SecretBroker`, `AgentRegistry`, git capability, clone → change → push → PR                         | A merged pull request where the sandbox never held a credential, provable from the broker's logs                                    |
+| **6 — Gates**                               | `Gate`, lint/typecheck/test gates, preview screenshots, `ArtifactStore`                             | A PR that arrives carrying its own evidence, and a failing gate whose structured findings drive a successful retry                  |
+| **7 — Adversarial review**                  | `ReviewPanel`, lenses, refute-by-default, `SkillPackage` (`mr-review`)                              | A panel that catches a defect the deterministic gates passed, with per-lens cost recorded so the panel can be judged on value       |
+| **8 — Autonomy**                            | `ScheduleRunner`, `WebhookIngress`, `Notifier`                                                      | An external event, with no human in the loop at the start, produces a reviewable PR and a notification                              |
 
 Phases 0–2 are committed scope. Everything after is designed here so the log schema does
 not have to migrate later, but is not a commitment.
 
 #### Phase 0 — delivered, 2026-08-02
 
-Scaffolded at `~/Code/hal-goodly` as a workspace monorepo (`hal-server`, `hal-shared`) on
+Scaffolded at `~/Code/hal-goodly` as a workspace monorepo on
 `effect@4.0.0-beta.102` and `alchemy@2.0.0-beta.67`, with oxlint type-aware, oxfmt, and
 Vitest 4. `npm run check` is green: format, lint, typecheck, and unit tests.
 
-Half the exit criterion is met and the other half is written but blocked:
+**Both halves of the exit criterion are met.**
 
-- **"Bindings typed end to end" — met, and proven by the typechecker rather than a test.**
+- **"Bindings typed end to end" — proven by the typechecker rather than a test.**
   The Worker obtains its `Sessions` client by yielding the same declaration that provisions
   the namespace, so a mismatch is a compile error. There is no wrangler config and no
   generated environment type in the repository at all.
-- **"An echo round-trips" — written, not yet run.** The stack-level test stands the stack up
-  and drives it over HTTP, asserting that the counter advances across requests on one
-  session and that a different session name is a different instance with isolated storage.
-  It reaches Alchemy's planning phase and stops on `AuthError` — Alchemy needs a configured
-  Cloudflare profile even in local mode. Requires an interactive `alchemy login` once.
+- **"An echo round-trips" — running.** `npm run test:integration` stands the stack up in
+  local workerd and drives it over HTTP, asserting that the echo comes back formatted, that
+  the counter advances across requests on one session, and that a different session name is
+  a different instance whose counter starts from its own zero. The `AuthError` that blocked
+  it at first was exactly what it looked like: Alchemy resolves a Cloudflare account before
+  planning even in local mode, so the suite needs credentials and is therefore opt-in —
+  split from the unit run by file name, leaving `npm run check` credential-free.
 
-Two findings worth carrying forward, both recorded in the repo's own agent instructions:
-the published Alchemy tag lags its repository examples on where `DurableObject` and `Worker`
-live, so the installed type definitions are the only reliable reference; and the
-oxlint/tsgolint version pairing has moved on from the sibling project's pins, which no
-longer resolve together.
+Three findings worth carrying forward. The published Alchemy tag lags its repository
+examples on where `DurableObject` and `Worker` live, so the installed type definitions are
+the only reliable reference. The oxlint/tsgolint version pairing has moved on from the
+sibling project's pins, which no longer resolve together. And **`hal-shared` was removed**:
+C5's server/client/shared split was scaffolded before anything needed it, and an empty
+package with a broken export map is worse than no package. It returns when the web client
+gives it a second consumer.
 
 ### 3. Requirements Analysis
 
@@ -327,7 +331,7 @@ alone is insufficient.
 
 **R3 — Sandboxed sub-agents with gates and adversarial review — ⚠️ satisfied in design, with
 real work behind it.** Flavoured sandboxes (plan, implement, verify) come from the WorkOS
-Horizon pattern, and the verify flavour runs as a *client* of the implement sandbox's
+Horizon pattern, and the verify flavour runs as a _client_ of the implement sandbox's
 preview URL rather than inside it — which is what makes verification structurally
 adversarial rather than merely instructed. Gates are values returning structured findings.
 Skills are versioned packages. The panel gives each reviewer a distinct lens and asks it to
@@ -355,8 +359,8 @@ retention window. Sandbox seconds are treated as a first-class effort dimension 
 tokens, because under C3 and C4 they may well dominate the bill.
 
 **R5 — Effect throughout — ✅.** Effect is load-bearing rather than decorative, in four
-specific places. Layers *are* the capability model, which makes least privilege a
-compile-time property. Scopes *are* the lifecycle answer. Fibers give structured
+specific places. Layers _are_ the capability model, which makes least privilege a
+compile-time property. Scopes _are_ the lifecycle answer. Fibers give structured
 cancellation, so "stop the agent" runs finalisers instead of leaking. And tracing is
 built in rather than bolted on. Schema does quadruple duty across tool definitions,
 structured model output, event encoding, and registry decoding.
@@ -379,7 +383,7 @@ declarative description executed by a durable executor.
 **C1 — no framework — respected, and the dominant source of design pressure.** Everything
 the chat agent base class provided is now ours: message persistence, resumable streams,
 socket lifecycle, state broadcast, scheduling. This is why the event log is the spine
-rather than a nice-to-have — it is the one abstraction that replaces *all* of those at
+rather than a nice-to-have — it is the one abstraction that replaces _all_ of those at
 once, and that is the argument for the whole design. Note one correction to earlier
 reasoning: the framework's workflow helper did provide a coarse progress channel back to
 the agent, so it was not mute. The accurate objection is narrower — token-level streaming
@@ -454,7 +458,7 @@ does too much reintroduces the problem it was meant to solve.
 
 **Secret templating at an egress proxy, rather than credentials in the registry.** The
 prototype's plan put credential material in a database, which was the right instinct to
-distrust. Instead the registry stores capability descriptors and secret *names*; the broker
+distrust. Instead the registry stores capability descriptors and secret _names_; the broker
 holds values, checks the destination host, and substitutes. Wrong host yields an error
 rather than a leaked token, and the database stops being sensitive at all.
 
@@ -466,22 +470,22 @@ the reason phase exit tests are written as demonstrations rather than checklists
 
 #### Dependencies
 
-| Dependency | Role | Stability |
-|---|---|---|
-| Effect v4 — `4.0.0-beta.102` | The language of the system | **Pre-release** — API can move |
-| Alchemy 2 — `2.0.0-beta.67` | Infrastructure **and** the Cloudflare runtime: Workers, DOs, state, storage, alarms, hibernating sockets, containers, R2, KV, D1, Queues, AI Gateway, Artifacts, Worker Loader, Workflows, Access | **Pre-release**, on the `next` tag — `latest` is still the pre-Effect v1 line |
-| Cloudflare Durable Objects | State, coordination, hibernation, alarms | Mature |
-| Cloudflare Sandbox / Containers | Sub-agent execution | GA; wrapped by Alchemy |
-| Cloudflare AI Gateway | Model routing, token and cost accounting | Stable; wrapped by Alchemy |
-| Cloudflare Artifacts | Versioned skill packages | **Beta** |
-| Browser Rendering / Playwright | Verification and evidence | Binding stable; **Playwright-in-container unproven here** |
-| R2, D1, Access, Queues | Artifacts, registry, auth, buffering | Mature |
-| OTel collector (external) | Span destination | Mature, but a vendor dependency — hence the log stays authoritative |
+| Dependency                      | Role                                                                                                                                                                                              | Stability                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Effect v4 — `4.0.0-beta.102`    | The language of the system                                                                                                                                                                        | **Pre-release** — API can move                                                |
+| Alchemy 2 — `2.0.0-beta.67`     | Infrastructure **and** the Cloudflare runtime: Workers, DOs, state, storage, alarms, hibernating sockets, containers, R2, KV, D1, Queues, AI Gateway, Artifacts, Worker Loader, Workflows, Access | **Pre-release**, on the `next` tag — `latest` is still the pre-Effect v1 line |
+| Cloudflare Durable Objects      | State, coordination, hibernation, alarms                                                                                                                                                          | Mature                                                                        |
+| Cloudflare Sandbox / Containers | Sub-agent execution                                                                                                                                                                               | GA; wrapped by Alchemy                                                        |
+| Cloudflare AI Gateway           | Model routing, token and cost accounting                                                                                                                                                          | Stable; wrapped by Alchemy                                                    |
+| Cloudflare Artifacts            | Versioned skill packages                                                                                                                                                                          | **Beta**                                                                      |
+| Browser Rendering / Playwright  | Verification and evidence                                                                                                                                                                         | Binding stable; **Playwright-in-container unproven here**                     |
+| R2, D1, Access, Queues          | Artifacts, registry, auth, buffering                                                                                                                                                              | Mature                                                                        |
+| OTel collector (external)       | Span destination                                                                                                                                                                                  | Mature, but a vendor dependency — hence the log stays authoritative           |
 
 The concentration of risk has **changed shape rather than reduced**. There are now two
 pre-1.0 dependencies instead of three, and the single-maintainer one is gone — but the
 remaining one is load-bearing for strictly more: Alchemy is now the single point of
-dependency for both the infrastructure *and* the runtime. Fewer things to break, more
+dependency for both the infrastructure _and_ the runtime. Fewer things to break, more
 breaks in each. On balance a better trade, because the alternative was two libraries with
 overlapping Durable Object abstractions and an unresolved question about which owned the
 entrypoint.
@@ -519,7 +523,7 @@ once: Effect v4 beta, Alchemy 2 beta owning both infrastructure and runtime, Clo
 young agent primitives, and a from-scratch rebuild. The prior attempt's own warning —
 choosing technologies and letting them decide what gets made — applies directly, and
 something like it stalled attempt two.
-*Impact: High. Likelihood: High.* **Mitigation:** phases 0–2 contain no AI and exist to
+_Impact: High. Likelihood: High._ **Mitigation:** phases 0–2 contain no AI and exist to
 falsify the foundation on a few hundred lines. Treat Phase 0 as a spike with permission to
 fail; if the Effect-in-DO ergonomics are bad, that is a week spent, and the fallback is a
 thinner Effect footprint at the DO boundary with plain handlers around it.
@@ -527,7 +531,7 @@ thinner Effect footprint at the DO boundary with plain handlers around it.
 **Effect runtime versus Durable Object hibernation.** A managed runtime held on an instance
 is lost on eviction, which can happen between any two messages. Anything scoped to it must
 be re-acquirable.
-*Impact: High. Likelihood: Medium.* **Mitigation:** the standing rule — runtime is
+_Impact: High. Likelihood: Medium._ **Mitigation:** the standing rule — runtime is
 per-invocation and never a source of truth; all truth in SQLite. There is precedent for
 being bitten by the adjacent problem, where a forked runtime failed to inherit
 configuration, so this is a known failure mode rather than a hypothetical. Phase 1's exit
@@ -535,7 +539,7 @@ test is deliberately an eviction test.
 
 **Sandbox cost and orphan containers.** Per-second billing, an agent that can spawn
 agents, and a single personal budget.
-*Impact: High. Likelihood: Medium.* **Mitigation:** three independent mechanisms — scoped
+_Impact: High. Likelihood: Medium._ **Mitigation:** three independent mechanisms — scoped
 release, reaper alarm, per-session concurrency cap — plus a hard spend alert outside the
 system. Phase 4's exit test is explicitly adversarial about this, and the reaper is treated
 as load-bearing rather than a safety net.
@@ -544,64 +548,64 @@ as load-bearing rather than a safety net.
 the Durable Object, hibernation, alarm, storage, container, R2 and inference boundaries as
 well as provisioning. A breaking change lands on both tiers at once, and there is no second
 implementation to fall back to.
-*Impact: High. Likelihood: Medium.* **Mitigation:** pin exactly — no carets on either
+_Impact: High. Likelihood: Medium._ **Mitigation:** pin exactly — no carets on either
 Alchemy or Effect — and treat upgrades as deliberate work with the phase exit tests as the
 regression suite. Keep Alchemy's idioms at the entrypoint boundary rather than letting them
 spread through domain code, so `SessionLog` and the capability interfaces stay portable.
 Read the installed source rather than treating it as opaque; the published tag lagging its
 own examples makes that mandatory, not virtuous.
-*This risk replaces the first draft's `effect-cf` risk, which is struck along with the
-dependency.*
+_This risk replaces the first draft's `effect-cf` risk, which is struck along with the
+dependency._
 
 **Event log schema and growth.** The log is the spine; a schema mistake is expensive, and
 unbounded growth degrades DO storage. Naive per-token appends would be both slow and
 costly.
-*Impact: High. Likelihood: Medium.* **Mitigation:** batch appends rather than writing per
+_Impact: High. Likelihood: Medium._ **Mitigation:** batch appends rather than writing per
 token; make compaction a Phase 1 requirement rather than a later cleanup; design the schema
-against the *later* phases' needs — review findings, gate results, artifact references —
+against the _later_ phases' needs — review findings, gate results, artifact references —
 which is a stated reason for documenting the full end state now.
 
-**~~Four platform boundaries with no Effect wrapper.~~** *Struck.* Containers, object
+**~~Four platform boundaries with no Effect wrapper.~~** _Struck._ Containers, object
 storage, inference and browser rendering are all provided by Alchemy 2, so this is no longer
 hand-written work. What remains is composing them behind the capability interfaces — which
 was always ours, and is Phase 4–6 design rather than plumbing.
 
 **Container concurrency cap limits the review panel.** A cap of five means a four-lens panel
 plus an implement sandbox saturates the account.
-*Impact: Medium. Likelihood: High.* **Mitigation:** queue lenses rather than fanning out;
+_Impact: Medium. Likelihood: High._ **Mitigation:** queue lenses rather than fanning out;
 consider running several lenses in one sandbox as separate processes; revisit the cap in
 Phase 7 with measured numbers.
 
 **Durable Object migrations under Alchemy.** Three DO classes holding real data, on a very
 new IaC integration. Renames and schema changes are the known sharp edge.
-*Impact: Medium. Likelihood: Medium.* **Mitigation:** settle class names in Phase 0 before
+_Impact: Medium. Likelihood: Medium._ **Mitigation:** settle class names in Phase 0 before
 any data exists; keep a documented manual migration path; do not assume the tool will
 handle a rename.
 
 **Adversarial review may not pay for itself.** It could add cost and latency without
 catching much beyond what deterministic gates already catch.
-*Impact: Low. Likelihood: Medium.* **Mitigation:** accept and measure — per-lens cost and
+_Impact: Low. Likelihood: Medium._ **Mitigation:** accept and measure — per-lens cost and
 per-lens catch rate are recorded from the start, and the panel is gated on diff risk. This
 is a decision the telemetry is designed to make for us.
 
 **Playwright traces and video inside a Cloudflare container are unproven.**
-*Impact: Low. Likelihood: Medium.* **Mitigation:** spike before Phase 6 is costed; the
+_Impact: Low. Likelihood: Medium._ **Mitigation:** spike before Phase 6 is costed; the
 fallback is screenshots via the browser binding, which is a weaker but sufficient form of
 evidence.
 
 ### 7. Pros & Cons Summary
 
-| Pros | Cons |
-|---|---|
-| One primitive serves streaming, multiplayer, resume, audit, and effort accounting | That primitive becomes a single point of design failure; the schema must be right early |
-| Least privilege is a compile-time property, not a prompt instruction | More ceremony per capability, and the guarantee stops at the boundary |
-| Resource lifetimes are explicit and enforced at three tiers, with two independent leak defences | More cross-object RPC and an extra hop on the streaming path |
-| Effort is measurable from day one, so cost decisions rest on evidence | Instrumentation must be built before anything interesting works — no early payoff |
-| Infra and application share one Effect source of truth, so no drift — no wrangler config, no generated env | One pre-release package is load-bearing for both tiers; DO migrations remain hand-held |
-| The primitives stay visible, which is the stated point of the project | Weeks before parity with the prototype; real morale risk |
-| Owned durable execution composes with Effect and is fully legible | Less battle-tested than the platform's own workflow engine |
-| Phase 0–2 falsify the foundation cheaply, before any AI exists | Compound novelty remains the dominant risk regardless of ordering |
-| A single log makes the self-improvement loop queryable — friction becomes a skill fix | Nothing here is validated at any scale beyond one operator |
+| Pros                                                                                                       | Cons                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| One primitive serves streaming, multiplayer, resume, audit, and effort accounting                          | That primitive becomes a single point of design failure; the schema must be right early |
+| Least privilege is a compile-time property, not a prompt instruction                                       | More ceremony per capability, and the guarantee stops at the boundary                   |
+| Resource lifetimes are explicit and enforced at three tiers, with two independent leak defences            | More cross-object RPC and an extra hop on the streaming path                            |
+| Effort is measurable from day one, so cost decisions rest on evidence                                      | Instrumentation must be built before anything interesting works — no early payoff       |
+| Infra and application share one Effect source of truth, so no drift — no wrangler config, no generated env | One pre-release package is load-bearing for both tiers; DO migrations remain hand-held  |
+| The primitives stay visible, which is the stated point of the project                                      | Weeks before parity with the prototype; real morale risk                                |
+| Owned durable execution composes with Effect and is fully legible                                          | Less battle-tested than the platform's own workflow engine                              |
+| Phase 0–2 falsify the foundation cheaply, before any AI exists                                             | Compound novelty remains the dominant risk regardless of ordering                       |
+| A single log makes the self-improvement loop queryable — friction becomes a skill fix                      | Nothing here is validated at any scale beyond one operator                              |
 
 ### 8. Test Specifications
 
@@ -616,6 +620,7 @@ credentials and must therefore be opt-in, leaving the default test run credentia
 
 **SessionLog — append, replay-from-cursor, compaction.** The spine, so these come first and
 must fail loudly.
+
 - Sequence numbers are strictly monotonic and gapless under concurrent appends from the turn
   loop and a task relay simultaneously.
 - Replay from an arbitrary cursor returns exactly the missed entries, in order, with none
@@ -628,8 +633,9 @@ must fail loudly.
   because the log is authoritative and cannot be allowed to hold garbage.
 
 **SandboxLease — teardown under interrupt.** The test that protects the budget.
+
 - Interrupting the fiber mid-run runs the finaliser and destroys the container.
-- A failure inside the leased scope still releases; a failure *in the finaliser* is
+- A failure inside the leased scope still releases; a failure _in the finaliser_ is
   surfaced rather than swallowed.
 - Eviction between acquire and release — the case no scope can catch — is caught by the
   reaper, which is asserted as an independent behaviour, not as an afterthought.
@@ -638,18 +644,20 @@ must fail loudly.
   container with no recorded lease. Both directions matter; only one is obvious.
 
 **DurableStep — idempotency and resumption.**
+
 - A completed step is not re-executed after resume; its recorded result is returned.
 - Retries follow the declared schedule, and the attempt count survives eviction rather
   than resetting — a resetting counter turns a bounded retry into an unbounded one.
 - A step that exhausts retries fails the task cleanly, appends a terminal event, and
   releases the lease instead of looping.
 - Interleaved resumption does not double-append to the log; the log is the observable
-  surface, so exactly-once *appearance* is the property under test even where execution is
+  surface, so exactly-once _appearance_ is the property under test even where execution is
   at-least-once.
 
 **Gate contracts and registry decoding.**
+
 - Each gate returns structured findings a sub-agent can consume as data, and a gate failure
-  is distinguishable from a gate *error* — a crashed test runner must not read as a clean
+  is distinguishable from a gate _error_ — a crashed test runner must not read as a clean
   pass. This is the silent-failure case worth most.
 - Gate composition short-circuits before expensive gates run when a cheap one fails.
 - Registry rows decode through schema into valid capability descriptors, and a malformed row

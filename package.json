@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "hal-server",
-    "hal-shared"
+    "hal-server"
   ],
   "type": "module",
   "scripts": {

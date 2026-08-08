@@ -52,17 +52,22 @@ Follow the existing Effect idiom, which matches the sibling `gen-ui-ne` project:
 
 ## Commands
 
-| Command                            | Purpose                                                             |
-| ---------------------------------- | ------------------------------------------------------------------- |
-| `npm run check`                    | format check, lint, typecheck, unit tests — run before every commit |
-| `npm run typecheck`                | tsc across workspaces                                               |
-| `npm run lint`                     | oxlint, type-aware                                                  |
-| `npm run format`                   | oxfmt write                                                         |
-| `npm test`                         | unit tests only; stack tests are opt-in                             |
-| `HAL_E2E=1 npm test -w hal-server` | the Phase 0 round-trip test, in local workerd                       |
-| `npm run dev -w hal-server`        | `alchemy dev`                                                       |
-| `npm run deploy -w hal-server`     | `alchemy deploy`                                                    |
-| `npm run destroy -w hal-server`    | `alchemy destroy`                                                   |
+| Command                         | Purpose                                                             |
+| ------------------------------- | ------------------------------------------------------------------- |
+| `npm run check`                 | format check, lint, typecheck, unit tests — run before every commit |
+| `npm run typecheck`             | tsc across workspaces                                               |
+| `npm run lint`                  | oxlint, type-aware                                                  |
+| `npm run format`                | oxfmt write                                                         |
+| `npm test`                      | unit tests only; stack tests are opt-in                             |
+| `npm run test:integration`      | the Phase 0 round-trip test, in local workerd — needs credentials   |
+| `npm run dev -w hal-server`     | `alchemy dev`                                                       |
+| `npm run deploy -w hal-server`  | `alchemy deploy`                                                    |
+| `npm run destroy -w hal-server` | `alchemy destroy`                                                   |
+
+The unit and stack suites are split by **file name**, not by an environment
+variable: `vitest.config.ts` excludes `*.integration.test.ts` and
+`vitest.integration.config.ts` includes only those. That is what keeps
+`npm run check` credential-free.
 
 ## Cloudflare and Effect knowledge
 

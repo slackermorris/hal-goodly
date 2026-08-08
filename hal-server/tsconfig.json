@@ -15,5 +15,5 @@
     "types": ["node", "vitest/globals"],
     "plugins": [{ "name": "@effect/language-service" }]
   },
-  "include": ["src", "alchemy.run.ts", "vitest.config.ts"]
+  "include": ["src", "alchemy.run.ts", "vitest.config.ts", "vitest.integration.config.ts"]
 }

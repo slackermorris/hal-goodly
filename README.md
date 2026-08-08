@@ -54,8 +54,9 @@ What is here:
   provisions the namespace is the one that types the client.
 - A `Sessions` Durable Object that reads and writes durable storage, so the
   runtime boundary is proven rather than assumed.
-- A shared contract package, so one schema is the schema the Worker, the
-  Durable Object, and the tests all agree on.
+- One `Echo` schema in `hal-server/src/Session.ts` that the Worker, the Durable
+  Object, and the tests all agree on. It is not yet a separate package —
+  there is no second workspace to share it with until the web client lands.
 
 What is deliberately **not** here yet: the event log (Phase 1), telemetry
 (Phase 2), any model call (Phase 3), sandboxes (Phase 4), and everything after.
@@ -63,7 +64,6 @@ What is deliberately **not** here yet: the event log (Phase 1), telemetry
 ## Layout
 
 ```
-hal-shared/     contracts shared by server and clients
 hal-server/     the Worker, the Durable Objects, and the Alchemy stack
   alchemy.run.ts    the stack — infrastructure as Effect
   src/Api.ts        the entry Worker
@@ -125,18 +125,20 @@ npm run destroy -w hal-server    # tear the stack down
 Verify the Phase 0 exit criterion:
 
 ```bash
-HAL_E2E=1 npm test -w hal-server
+npm run test:integration
 ```
 
 That stands the stack up in local workerd and drives it over HTTP: the echo
-comes back formatted by the shared function, the per-session counter advances
+comes back formatted rather than merely echoed, the per-session counter advances
 across requests (proving storage is durable, not per-invocation memory), and a
-different session name lands on a different instance with isolated storage.
+different session name lands on a different instance whose counter starts from
+its own zero.
 
 Note that `dev: true` runs the Worker locally rather than deploying it, but
 Alchemy still resolves a Cloudflare account before planning — so credentials are
-required either way. The test is skipped without `HAL_E2E=1` precisely so
-`npm run check` needs no credentials.
+required either way. The two suites are split by file name — `vitest.config.ts`
+excludes `*.integration.test.ts`, `vitest.integration.config.ts` includes only
+those — precisely so `npm run check` needs no credentials.
 
 **The other half of the exit criterion — "bindings typed end to end" — is
 proven by `npm run typecheck`**, not by this test. The Worker gets its

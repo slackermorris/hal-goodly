@@ -1,7 +1,7 @@
-import * as Alchemy from "alchemy";
-import * as Cloudflare from "alchemy/Cloudflare";
-import * as Effect from "effect/Effect";
-import Api from "./src/Api.ts";
+import * as Alchemy from 'alchemy';
+import * as Cloudflare from 'alchemy/Cloudflare';
+import * as Effect from 'effect/Effect';
+import Api from './src/Api.ts';
 
 /**
  * The Hal stack.
@@ -10,7 +10,7 @@ import Api from "./src/Api.ts";
  * so there is no local state file to lose or to share.
  */
 export default Alchemy.Stack(
-  "HalGoodly",
+  'HalGoodly',
   {
     providers: Cloudflare.providers(),
     state: Cloudflare.state(),
