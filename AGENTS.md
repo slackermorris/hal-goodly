@@ -71,23 +71,9 @@ variable: `vitest.config.ts` excludes `*.integration.test.ts` and
 
 ## Cloudflare and Effect knowledge
 
-Both dependencies are on prerelease tags and move quickly. **Do not answer from
-memory.** Read the installed type definitions under
-`node_modules/alchemy/lib/` and `node_modules/effect/dist/` — they are the
-ground truth for this version, and the published docs and public examples are
-sometimes ahead of the tag we are pinned to.
+When writing Effect code, inspect @repos/effect/ for examples of idiomatic usage, tests, module structure, and API design. Treat it as the source of truth for Effect patterns.
 
-Notably in the version we are on, `DurableObject`, `Worker`,
-`DurableObjectState` and `upgrade` live under the `Cloudflare.Workers`
-namespace, even though upstream examples show them at the top level of
-`alchemy/Cloudflare`.
-
-For Cloudflare platform behaviour and limits, retrieve current docs rather than
-recalling them:
-
-- <https://developers.cloudflare.com/durable-objects/>
-- <https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/>
-- MCP: `https://docs.mcp.cloudflare.com/mcp`
+When using Cloudflare primitives, inspect @repos/cloudflare/ for examples of idiomatic usage, tests, module structure, and API design. Treat it as the source of truth for Cloudflare patterns.
 
 ## Cost is a design constraint
 
@@ -95,3 +81,12 @@ Sandboxes are billed per second and this system can spawn its own sub-agents.
 Any code that acquires a container must release it under every exit path,
 including interruption, and must also be reachable by an independent reaper.
 Never rely on a single mechanism.
+
+## Vendored Repositories
+
+This project vendors external repositories under @repos/
+
+- Use vendored repositories as read-only reference material when working with related libraries
+- Prefer examples and patterns from the vendored source code over generated guesses or web search results
+- Do not edit files under @repos/ unless explicitly asked
+- Do not import from @repos/ - application code should continue importing from normal package dependencies

@@ -8,5 +8,18 @@
     "source.organizeImports": "never", // let oxfmt handle import organization
     "source.fixAll.oxc": "explicit"
   },
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.preferences.autoImportFileExcludePatterns": ["repos/**"],
+
+  "files.exclude": {
+    "repos/**": true
+  },
+
+  "files.watcherExclude": {
+    "repos/**": true
+  },
+
+  "search.exclude": {
+    "repos/**": true
+  }
 }
