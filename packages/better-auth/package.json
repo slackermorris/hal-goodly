@@ -1,0 +1,47 @@
+{
+  "name": "@alchemy.run/better-auth",
+  "version": "2.0.0-beta.70",
+  "description": "Better Auth integration for Alchemy.",
+  "homepage": "https://alchemy.run",
+  "license": "Apache-2.0",
+  "author": "Sam Goodwin <sam@alchemy.run>",
+  "keywords": [
+    "alchemy",
+    "better-auth",
+    "effect",
+    "infrastructure-as-code"
+  ],
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alchemy-run/alchemy.git",
+    "directory": "packages/better-auth"
+  },
+  "bugs": {
+    "url": "https://github.com/alchemy-run/alchemy/issues"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "default": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
+  "dependencies": {
+    "alchemy": "workspace:*",
+    "effect": "catalog:"
+  },
+  "peerDependencies": {
+    "better-auth": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
