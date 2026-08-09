@@ -1,0 +1,42 @@
+{
+  "exclude": ["node_modules", "dist", "vendor"],
+  "compilerOptions": {
+    "types": ["bun"],
+    // Enable latest features
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    // Bundler mode
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    // Best practices
+    "strict": true,
+    "skipLibCheck": true,
+    // Resolve project references (notably every `distilled/packages/*`)
+    // through their emitted `lib/*.d.ts` instead of redirecting to their
+    // sources. Without this, editors and `tsc` pull distilled's generated
+    // SDK sources — hundreds of thousands of lines across 20 packages —
+    // into the program, which is what makes intellisense crawl. distilled
+    // builds with `noCheck: true` and gates its own typechecking in its
+    // own CI, so re-checking its sources from here buys nothing.
+    "disableSourceOfProjectReferenceRedirect": true,
+    "noFallthroughCasesInSwitch": true,
+    // Some stricter flags (disabled by default)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitThis": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noErrorTruncation": true
+  }
+}
