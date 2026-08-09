@@ -1,0 +1,47 @@
+# AI Chat Example
+
+A complete chat application built with `@cloudflare/ai-chat` showcasing the recommended patterns.
+
+## What it demonstrates
+
+**Server (`src/server.ts`):**
+
+- `toUIMessageStreamResponse()` -- the simplest streaming pattern
+- Browser Rendering tools via `agents/browser/ai` -- the durable CDP `browser_execute` tool plus the default-on stateless Quick Actions (`browser_markdown`, `browser_extract`, `browser_links`, `browser_scrape`)
+- Server-side tools with `execute` (weather lookup)
+- Client-side tools without `execute` (browser timezone)
+- Tool approval with `needsApproval` (calculation with amount threshold)
+- `pruneMessages()` for managing LLM context in long conversations
+- `maxPersistedMessages` for storage management
+- client resumable streaming on reconnect, plus `chatRecovery` for Durable Object eviction recovery: an interrupted turn (deploy/OOM/hibernation mid-stream) self-resumes from its persisted partial via `_chatRecoveryContinue`, and clients see a live "recovering…" status (also replayed on reconnect)
+
+**Client (`src/client.tsx`):**
+
+- `useAgentChat` with `onToolCall` for client-side tool execution
+- `addToolApprovalResponse` for approve/reject UI
+- `body` option for sending custom data with every request
+- Tool part rendering, including inline browser screenshots
+- Kumo design system components
+
+## Running
+
+```bash
+npm install
+npm start
+```
+
+Uses Workers AI (no API key needed) with `@cf/moonshotai/kimi-k2.7-code`.
+
+Recent Wrangler releases run the Browser Rendering binding locally, so no separate Chrome process is required.
+
+## Try it
+
+- "Read https://example.com as markdown" -- one-shot `browser_markdown` Quick Action (no CDP session)
+- "List the links on https://developers.cloudflare.com/agents/" -- `browser_links` Quick Action
+- "Open https://example.com and tell me the page title" -- uses the browser binding and CDP tools
+- "Search the CDP spec for screenshot commands" -- exercises `cdp.spec()` inside `browser_execute`
+- "Take a screenshot of https://example.com" -- exercises `browser_execute` and renders the image inline
+- "What's the weather in London?" -- server-side tool, executes automatically
+- "What timezone am I in?" -- client-side tool, browser provides the result
+- "Calculate 150 \* 3, amount is $450" -- requires approval before executing
+- Have a long conversation -- old tool calls are pruned from LLM context automatically
