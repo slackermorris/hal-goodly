@@ -9,7 +9,7 @@ a different foundation.
 
 ## The idea
 
-**One append-only event log per session is the load-bearing primitive.
+**One append-only event log per thread is the load-bearing primitive.
 Everything else is a projection of it.**
 
 The earlier attempts had no single durable thing the whole system agreed to
@@ -52,14 +52,18 @@ What is here:
 - An Alchemy stack declaring one Worker and one Durable Object namespace, in
   Effect. No `wrangler.jsonc`, no generated env — the declaration that
   provisions the namespace is the one that types the client.
-- A `Sessions` Durable Object that reads and writes durable storage, so the
+- A `Threads` Durable Object that reads and writes durable storage, so the
   runtime boundary is proven rather than assumed.
-- One `Echo` schema in `hal-server/src/Session.ts` that the Worker, the Durable
+- One `Echo` schema in `hal-server/src/Thread.ts` that the Worker, the Durable
   Object, and the tests all agree on. It is not yet a separate package —
   there is no second workspace to share it with until the web client lands.
+- The first cut of `EventLog` — the append-only, ordered log the whole design
+  rests on. Append with an idempotency key, replay from a cursor, head. It owns
+  the `events` table and nothing else touches it.
 
-What is deliberately **not** here yet: the event log (Phase 1), telemetry
-(Phase 2), any model call (Phase 3), sandboxes (Phase 4), and everything after.
+What is deliberately **not** here yet: socket fan-out and participants (the rest
+of Phase 1), telemetry (Phase 2), any model call (Phase 3), sandboxes (Phase 4),
+and everything after.
 
 ## Layout
 
@@ -67,7 +71,8 @@ What is deliberately **not** here yet: the event log (Phase 1), telemetry
 hal-server/     the Worker, the Durable Objects, and the Alchemy stack
   alchemy.run.ts    the stack — infrastructure as Effect
   src/Api.ts        the entry Worker
-  src/Session.ts    the Durable Object
+  src/Thread.ts     the Durable Object — one per conversation
+  src/EventLog.ts   the append-only log it owns
 docs/           design and references
 ```
 
@@ -129,9 +134,9 @@ npm run test:integration
 ```
 
 That stands the stack up in local workerd and drives it over HTTP: the echo
-comes back formatted rather than merely echoed, the per-session counter advances
+comes back formatted rather than merely echoed, the per-thread counter advances
 across requests (proving storage is durable, not per-invocation memory), and a
-different session name lands on a different instance whose counter starts from
+different thread name lands on a different instance whose counter starts from
 its own zero.
 
 Note that `dev: true` runs the Worker locally rather than deploying it, but
@@ -142,7 +147,7 @@ those — precisely so `npm run check` needs no credentials.
 
 **The other half of the exit criterion — "bindings typed end to end" — is
 proven by `npm run typecheck`**, not by this test. The Worker gets its
-`Sessions` client from the same declaration that provisions the namespace, so a
+`Threads` client from the same declaration that provisions the namespace, so a
 mismatch is a compile error rather than a runtime 500.
 
 Or check it by hand:

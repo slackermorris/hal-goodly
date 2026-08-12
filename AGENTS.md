@@ -6,7 +6,7 @@ source-of-truth design document and states which delivery phase we are in.
 
 ## The one rule that matters
 
-**The session event log is the spine.** Streaming, multiplayer, reconnection,
+**The thread event log is the spine.** Streaming, multiplayer, reconnection,
 durable task resumption, effort accounting, and change recording are all
 projections of one append-only ordered log. Do not introduce a second source of
 truth for conversation state. If you find yourself adding a parallel table, a
