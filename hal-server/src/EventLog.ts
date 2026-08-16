@@ -1,6 +1,6 @@
-import type * as Cloudflare from 'alchemy/Cloudflare';
-import { Schema } from 'effect';
-import * as Effect from 'effect/Effect';
+import type * as Cloudflare from "alchemy/Cloudflare";
+import { Schema } from "effect";
+import * as Effect from "effect/Effect";
 
 /**
  * The append-only, ordered event log — the spine of the whole system.
@@ -39,29 +39,16 @@ const ROW_MAX_BYTES = 1_800_000;
  * a manual repair) would otherwise reintroduce the hazard quietly.
  *
  * The payload stays opaque and the only index is the one the log actually
- * queries by. Replay reads by `seq` (the primary key); idempotent submit reads
- * by `client_msg_id`. Nothing else earns an index, so an evolving event kind
- * stays a code change rather than a migration.
+ * queries by. Replay reads by `seq` (the primary key). Nothing else earns an index,
+ * so an evolving event kind stays a code change rather than a migration.
  */
-const migrations = [
-  `CREATE TABLE IF NOT EXISTS events (
+const migration = `CREATE TABLE IF NOT EXISTS events (
      seq           INTEGER PRIMARY KEY AUTOINCREMENT,
      kind          TEXT    NOT NULL,
      author        TEXT    NOT NULL,
      payload       TEXT    NOT NULL,
-     at            INTEGER NOT NULL,
-     client_msg_id TEXT
-   )`,
-  /**
-   * Not a partial index. A partial one would need its predicate repeated in
-   * every `ON CONFLICT` target to be matched at all, and it buys nothing here:
-   * SQLite treats NULLs as distinct under a unique constraint, so entries
-   * without a `client_msg_id` — everything the log writes on its own behalf —
-   * never collide with each other.
-   */
-  `CREATE UNIQUE INDEX IF NOT EXISTS events_client_msg_id
-     ON events (client_msg_id)`,
-] as const;
+     at            INTEGER NOT NULL
+   )`;
 
 /**
  * Strict on write: an unknown kind is rejected at the boundary rather than
@@ -70,7 +57,7 @@ const migrations = [
  * is no longer recognised fails to decode and costs one entry rather than
  * poisoning the whole replay.
  */
-export const EventKind = Schema.Literals(['echo', 'message']);
+export const EventKind = Schema.Literals(["message"]);
 
 /**
  * A `Schema.Struct` rather than a `Schema.Class`, and the whole public surface
@@ -88,29 +75,25 @@ export const EventSchema = Schema.Struct({
   at: Schema.Int,
 });
 
-export type Event = {
-  readonly seq: number;
-  readonly kind: string;
-  readonly author: string;
-  readonly payload: unknown;
-  readonly at: number;
-};
+export type Event = typeof EventSchema.Type;
 
 export type Receipt = {
   readonly seq: number;
   readonly at: number;
-  /** True when an existing entry was returned for a repeated `clientMsgId`. */
-  readonly deduplicated: boolean;
 };
 
-export class EntryTooLarge extends Schema.ErrorClass<EntryTooLarge>('EntryTooLarge')({
-  _tag: Schema.Literal('EntryTooLarge'),
+export class EntryTooLarge extends Schema.ErrorClass<EntryTooLarge>(
+  "EntryTooLarge",
+)({
+  _tag: Schema.Literal("EntryTooLarge"),
   bytes: Schema.Int,
   limit: Schema.Int,
 }) {}
 
-export class UnknownEventKind extends Schema.ErrorClass<UnknownEventKind>('UnknownEventKind')({
-  _tag: Schema.Literal('UnknownEventKind'),
+export class UnknownEventKind extends Schema.ErrorClass<UnknownEventKind>(
+  "UnknownEventKind",
+)({
+  _tag: Schema.Literal("UnknownEventKind"),
   kind: Schema.String,
 }) {}
 
@@ -136,11 +119,6 @@ export type ReadResult = {
   readonly skipped: number;
 };
 
-export type Head = {
-  /** The highest seq the log holds; 0 when empty. */
-  readonly seq: number;
-};
-
 const decodeEvent = Schema.decodeUnknownOption(EventSchema);
 
 const DEFAULT_READ_LIMIT = 256;
@@ -153,33 +131,32 @@ const DEFAULT_READ_LIMIT = 256;
  */
 export const make = (sql: Cloudflare.Workers.SqlStorage) =>
   Effect.gen(function* () {
-    const query = <T extends Record<string, string | number | ArrayBuffer | null>>(
+    const query = <
+      T extends Record<string, string | number | ArrayBuffer | null>,
+    >(
       statement: string,
       ...bindings: ReadonlyArray<string | number | null>
-    ) => Effect.flatMap(sql.exec<T>(statement, ...bindings), (cursor) => cursor.toArray());
-
-    for (const migration of migrations) {
-      yield* sql.exec(migration);
-    }
-
-    const head = Effect.gen(function* () {
-      const [row] = yield* query<{ seq: number }>(
-        `SELECT COALESCE(MAX(seq), 0) AS seq FROM events`,
+    ) =>
+      Effect.flatMap(sql.exec<T>(statement, ...bindings), (cursor) =>
+        cursor.toArray(),
       );
-      return { seq: row?.seq ?? 0 } satisfies Head;
-    });
+
+    yield* sql.exec(migration);
+
+    // TODO: only allow for kind being a "message", 
 
     const append = (input: {
       readonly kind: string;
       readonly author: string;
       readonly payload: unknown;
-      readonly clientMsgId?: string | undefined;
     }) =>
       Effect.gen(function* () {
-        if (!(EventKind.literals as ReadonlyArray<string>).includes(input.kind)) {
+        if (
+          !(EventKind.literals as ReadonlyArray<string>).includes(input.kind)
+        ) {
           return yield* Effect.fail(
             new UnknownEventKind({
-              _tag: 'UnknownEventKind',
+              _tag: "UnknownEventKind",
               kind: input.kind,
             }),
           );
@@ -190,7 +167,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         if (bytes > ROW_MAX_BYTES) {
           return yield* Effect.fail(
             new EntryTooLarge({
-              _tag: 'EntryTooLarge',
+              _tag: "EntryTooLarge",
               bytes,
               limit: ROW_MAX_BYTES,
             }),
@@ -198,44 +175,22 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         }
 
         const at = Date.now();
-        const clientMsgId = input.clientMsgId ?? null;
 
-        /**
-         * `DO NOTHING` returns no row on conflict, which is the signal that
-         * this is a resubmission. A client that reconnects mid-send retries,
-         * and multiplayer makes that ordinary rather than exceptional — so
-         * the receipt has to come back identical rather than appending a
-         * second entry.
-         */
         const inserted = yield* query<{ seq: number; at: number }>(
-          `INSERT INTO events (kind, author, payload, at, client_msg_id)
-             VALUES (?, ?, ?, ?, ?)
-             ON CONFLICT (client_msg_id) DO NOTHING
+          `INSERT INTO events (kind, author, payload, at)
+             VALUES (?, ?, ?, ?)
              RETURNING seq, at`,
           input.kind,
           input.author,
           payload,
           at,
-          clientMsgId,
         );
 
         const row = inserted[0];
-        if (row !== undefined) {
-          return {
-            seq: row.seq,
-            at: row.at,
-            deduplicated: false,
-          } satisfies Receipt;
-        }
 
-        const [existing] = yield* query<{ seq: number; at: number }>(
-          `SELECT seq, at FROM events WHERE client_msg_id = ?`,
-          clientMsgId,
-        );
         return {
-          seq: existing?.seq ?? 0,
-          at: existing?.at ?? at,
-          deduplicated: true,
+          seq: row.seq,
+          at: row.at,
         } satisfies Receipt;
       });
 
@@ -270,7 +225,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
              * log that quietly drops an entry during replay is
              * indistinguishable from a cursor bug.
              */
-            yield* Effect.logWarning('dropping undecodable log entry', {
+            yield* Effect.logWarning("dropping undecodable log entry", {
               seq: row.seq,
               kind: row.kind,
             });
@@ -290,11 +245,13 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
      * — the table is this module's and stays that way.
      */
     const count = Effect.gen(function* () {
-      const [row] = yield* query<{ rows: number }>(`SELECT COUNT(*) AS rows FROM events`);
+      const [row] = yield* query<{ rows: number }>(
+        `SELECT COUNT(*) AS rows FROM events`,
+      );
       return row?.rows ?? 0;
     });
 
-    return { append, read, head, count } as const;
+    return { append, read, count } as const;
   });
 
 /**
@@ -317,9 +274,10 @@ const decodeRow = (row: {
     return null;
   }
   const decoded = decodeEvent({ ...row, payload });
-  if (decoded._tag !== 'Some') return null;
+  if (decoded._tag !== "Some") return null;
   return {
     seq: row.seq,
+    // @ts-ignore: I'm working on this.
     kind: row.kind,
     author: row.author,
     payload,

@@ -30,6 +30,36 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     observability: {
       enabled: true,
     },
+    /**
+     * Alchemy bundles the Worker with `minify: true` and `sourcemap: "hidden"`.
+     * The map IS written to disk beside the bundle, but no `sourceMappingURL`
+     * comment is emitted, so workerd's inspector reports no map and a
+     * breakpoint in this file has nothing to bind to.
+     *
+     * Pointing the debugger at the on-disk map via `cwd`/`outFiles` was tried
+     * and does not work: workerd names its scripts with a bare URL ("Api.js"),
+     * and js-debug will not resolve that to a file on disk. The map has to
+     * arrive through the script itself.
+     *
+     * So: an inline map, unminified. `sourcemapPathTransform` rewrites sources
+     * to absolute paths, because a map whose sources are relative
+     * ("../../../src/Api.ts") gives the debugger no anchor and breakpoints stay
+     * hollow. Gated on `WORKERD_INSPECTOR_ADDR` — unset, on every ordinary test
+     * run and every deploy, the defaults are untouched.
+     */
+    build: process.env.WORKERD_INSPECTOR_ADDR
+      ? {
+          output: {
+            sourcemap: 'inline',
+            minify: false,
+            // `URL` is a global in both Node and workerd, so this needs no
+            // import — which matters, because this options object is itself
+            // part of the Worker bundle.
+            sourcemapPathTransform: (source: string, sourcemapPath: string) =>
+              new URL(source, `file://${sourcemapPath}`).pathname,
+          },
+        }
+      : undefined,
   },
   Effect.gen(function* () {
     const threads = yield* Thread;
@@ -41,26 +71,6 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
         if (url.pathname === '/health') {
           return HttpServerResponse.text('ok');
-        }
-
-        if (url.pathname.startsWith('/echo/')) {
-          const threadId = url.pathname.slice('/echo/'.length);
-          if (threadId === '') {
-            return HttpServerResponse.text('thread id is required', {
-              status: 400,
-            });
-          }
-
-          const text = url.searchParams.get('text');
-          if (text === null) {
-            return HttpServerResponse.text('text query parameter is required', {
-              status: 400,
-            });
-          }
-
-          const thread = threads.getByName(threadId);
-          const reply = yield* thread.echo(text);
-          return yield* HttpServerResponse.json(reply);
         }
 
         const route = matchThreadRoute(url.pathname);
@@ -76,7 +86,6 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
               const result = yield* thread.submit({
                 author: url.searchParams.get('author') ?? 'anonymous',
                 text,
-                clientMsgId: url.searchParams.get('clientMsgId') ?? undefined,
               });
               /**
                * The write gate's rejection arrives as data rather than as a
@@ -98,9 +107,6 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
               );
               return yield* HttpServerResponse.json(result);
             }
-
-            case 'head':
-              return yield* HttpServerResponse.json(yield* thread.head());
 
             case 'diagnostics':
               return yield* HttpServerResponse.json(yield* thread.diagnostics());
@@ -131,7 +137,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
   }),
 ) {}
 
-const ACTIONS = ['submit', 'read', 'head', 'diagnostics', 'evict'] as const;
+const ACTIONS = ['submit', 'read', 'diagnostics', 'evict'] as const;
 
 type ThreadRoute = {
   readonly threadId: string;

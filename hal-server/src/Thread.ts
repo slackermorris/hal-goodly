@@ -1,7 +1,7 @@
-import * as Cloudflare from 'alchemy/Cloudflare';
-import { Schema } from 'effect';
-import * as Effect from 'effect/Effect';
-import * as EventLog from './EventLog.ts';
+import * as Cloudflare from "alchemy/Cloudflare";
+import { Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as EventLog from "./EventLog.ts";
 
 /**
  * One conversation. Formerly `SessionDO`, and renamed for two reasons.
@@ -53,10 +53,10 @@ import * as EventLog from './EventLog.ts';
  * Object fixtures use.
  */
 export type SubmitResult =
-  | { readonly _tag: 'Accepted'; readonly receipt: EventLog.Receipt }
+  | { readonly _tag: "Accepted"; readonly receipt: EventLog.Receipt }
   | {
-      readonly _tag: 'Rejected';
-      readonly reason: 'EntryTooLarge';
+      readonly _tag: "Rejected";
+      readonly reason: "EntryTooLarge";
       readonly bytes: number;
       readonly limit: number;
     };
@@ -72,8 +72,6 @@ export type SubmitResult =
  */
 export type Diagnostics = {
   readonly incarnation: string;
-  /** Deliberately in-isolate: the negative control for the eviction test. */
-  readonly memoryAppends: number;
   readonly rows: number;
   /** Must be null once the cutover away from KV storage is complete. */
   readonly kvSeq: number | null;
@@ -81,7 +79,7 @@ export type Diagnostics = {
 };
 
 export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
-  'Threads',
+  "Threads",
   Effect.gen(function* () {
     const state = yield* Cloudflare.Workers.DurableObjectState;
 
@@ -96,19 +94,12 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
        * that must never become a source of truth.
        */
       const incarnation = crypto.randomUUID();
-      let memoryAppends = 0;
 
       const append = (input: {
         readonly kind: string;
         readonly author: string;
         readonly payload: unknown;
-        readonly clientMsgId?: string | undefined;
-      }) =>
-        Effect.tap(log.append(input), (receipt) =>
-          Effect.sync(() => {
-            if (!receipt.deduplicated) memoryAppends += 1;
-          }),
-        );
+      }) => log.append(input);
 
       return {
         /**
@@ -122,16 +113,18 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
           readonly clientMsgId?: string | undefined;
         }) =>
           append({
-            kind: 'message',
+            kind: "message",
             author: input.author,
             payload: { text: input.text },
-            clientMsgId: input.clientMsgId,
           }).pipe(
-            Effect.map((receipt) => ({ _tag: 'Accepted', receipt }) satisfies SubmitResult),
-            Effect.catchTag('EntryTooLarge', (error) =>
+            Effect.map(
+              (receipt) =>
+                ({ _tag: "Accepted", receipt }) satisfies SubmitResult,
+            ),
+            Effect.catchTag("EntryTooLarge", (error) =>
               Effect.succeed({
-                _tag: 'Rejected',
-                reason: 'EntryTooLarge',
+                _tag: "Rejected",
+                reason: "EntryTooLarge",
                 bytes: error.bytes,
                 limit: error.limit,
               } satisfies SubmitResult),
@@ -143,30 +136,6 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
              */
             Effect.orDie,
           ),
-
-        /**
-         * Phase 0's exit criterion, preserved and now standing on the log:
-         * `seq` is the row's own primary key rather than a counter kept beside
-         * it, so the number in the reply is a receipt for a durable entry.
-         */
-        echo: (text: string) =>
-          Effect.gen(function* () {
-            const formatted = Echo.formatEcho(text);
-            const receipt = yield* Effect.orDie(
-              append({
-                kind: 'echo',
-                author: 'anonymous',
-                payload: { text: formatted },
-              }),
-            );
-            const reply: Echo = {
-              text: formatted,
-              seq: receipt.seq,
-              threadId,
-            };
-            return reply;
-          }),
-
         /**
          * Replay from a cursor. `after` is exclusive.
          *
@@ -176,14 +145,11 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
         read: (after: number, limit?: number) =>
           Effect.annotateLogs(log.read(after, limit), { threadId }),
 
-        head: () => log.head,
-
         diagnostics: () =>
           Effect.gen(function* () {
-            const kvSeq = yield* state.storage.get<number>('seq');
+            const kvSeq = yield* state.storage.get<number>("seq");
             return {
               incarnation,
-              memoryAppends,
               rows: yield* log.count,
               kvSeq: kvSeq ?? null,
               databaseSize: state.storage.sql.databaseSize,
@@ -197,7 +163,7 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
          * so the tests do not have to wait for Cloudflare to evict on its own
          * schedule.
          */
-        evict: () => state.abort('forced eviction'),
+        evict: () => state.abort("forced eviction"),
       };
     });
   }),
@@ -209,9 +175,9 @@ const EchoSchema = Schema.Struct({
   threadId: Schema.String,
 });
 
-export class Echo extends Schema.Class<Echo>('Echo')(EchoSchema) {
+export class Echo extends Schema.Class<Echo>("Echo")(EchoSchema) {
   static formatEcho(text: string) {
-    const formatted = text.trim().replace(/\s+/g, ' ');
+    const formatted = text.trim().replace(/\s+/g, " ");
     return formatted;
   }
 }
