@@ -7,6 +7,7 @@
   ],
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/enable-workerd-inspector.mjs",
     "lint": "oxlint --type-aware --disable-nested-config",
     "format": "oxfmt . '!repos/**'",
     "format:check": "oxfmt --check . '!repos/**'",
