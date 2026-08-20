@@ -1,5 +1,5 @@
 import type * as Cloudflare from "alchemy/Cloudflare";
-import { Schema } from "effect";
+import { Console, Option, Schema } from "effect";
 import * as Effect from "effect/Effect";
 
 /**
@@ -20,7 +20,7 @@ import * as Effect from "effect/Effect";
  */
 
 /**
- * SQLite caps a row at 2 MB and the Agents SDK writes against 1.8 MB for
+ * SQLite caps a row at 2 MB and the Cloudflare Agents SDK writes against 1.8 MB for
  * headroom. The same number applies here: a log that can write a row SQLite
  * will reject is broken from its first append, so the cap is a write gate
  * rather than a runtime surprise.
@@ -82,20 +82,18 @@ export type Receipt = {
   readonly at: number;
 };
 
-export class EntryTooLarge extends Schema.ErrorClass<EntryTooLarge>(
+export class EntryTooLarge extends Schema.TaggedErrorClass<EntryTooLarge>()(
   "EntryTooLarge",
-)({
-  _tag: Schema.Literal("EntryTooLarge"),
-  bytes: Schema.Int,
-  limit: Schema.Int,
-}) {}
+  {
+    bytes: Schema.Int,
+    limit: Schema.Int,
+  },
+) {}
 
-export class UnknownEventKind extends Schema.ErrorClass<UnknownEventKind>(
+export class UnknownEventKind extends Schema.TaggedErrorClass<UnknownEventKind>()(
   "UnknownEventKind",
-)({
-  _tag: Schema.Literal("UnknownEventKind"),
-  kind: Schema.String,
-}) {}
+  { kind: Schema.String },
+) {}
 
 /**
  * One shape, because a cursor cannot currently fall out of the log — nothing
@@ -120,6 +118,7 @@ export type ReadResult = {
 };
 
 const decodeEvent = Schema.decodeUnknownOption(EventSchema);
+const decodeEventKind = Schema.decodeUnknownOption(EventKind);
 
 const DEFAULT_READ_LIMIT = 256;
 
@@ -143,7 +142,9 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     yield* sql.exec(migration);
 
-    // TODO: only allow for kind being a "message", 
+    // TODO: only allow for kind being a "message",
+
+    // improper use of schema, is it really the eventlogs job to decode it?
 
     const append = (input: {
       readonly kind: string;
@@ -151,9 +152,8 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
       readonly payload: unknown;
     }) =>
       Effect.gen(function* () {
-        if (
-          !(EventKind.literals as ReadonlyArray<string>).includes(input.kind)
-        ) {
+        const kind = decodeEventKind(input.kind);
+        if (Option.isNone(kind)) {
           return yield* Effect.fail(
             new UnknownEventKind({
               _tag: "UnknownEventKind",
@@ -162,12 +162,13 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           );
         }
 
+        // TODO: why we should not use JSON stringify https://dev.to/dzakh/encode-dont-stringify-how-jsonstringify-lies-to-you-38fk
+
         const payload = JSON.stringify(input.payload ?? null);
         const bytes = new TextEncoder().encode(payload).byteLength;
         if (bytes > ROW_MAX_BYTES) {
           return yield* Effect.fail(
             new EntryTooLarge({
-              _tag: "EntryTooLarge",
               bytes,
               limit: ROW_MAX_BYTES,
             }),

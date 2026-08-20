@@ -79,12 +79,22 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
           switch (route.action) {
             case 'submit': {
-              const text = url.searchParams.get('text');
+              /**
+               * A body rather than query params: a message can approach the
+               * log's row cap, and a URL that size never reaches the server —
+               * the request line itself gets rejected long before workerd
+               * sees it.
+               */
+              const body = (yield* request.json) as {
+                readonly text?: unknown;
+                readonly author?: unknown;
+              };
+              const text = typeof body.text === 'string' ? body.text : null;
               if (text === null) {
-                return HttpServerResponse.text('text query parameter is required', { status: 400 });
+                return HttpServerResponse.text('text is required in the request body', { status: 400 });
               }
               const result = yield* thread.submit({
-                author: url.searchParams.get('author') ?? 'anonymous',
+                author: typeof body.author === 'string' ? body.author : 'anonymous',
                 text,
               });
               /**

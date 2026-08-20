@@ -95,47 +95,40 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
        */
       const incarnation = crypto.randomUUID();
 
-      const append = (input: {
-        readonly kind: string;
-        readonly author: string;
-        readonly payload: unknown;
-      }) => log.append(input);
-
       return {
         /**
          * A participant contributes to the conversation. Deliberately not
          * `append(event)`: the caller states an intent and the log decides
          * what entry that becomes.
          */
-        submit: (input: {
-          readonly author: string;
-          readonly text: string;
-          readonly clientMsgId?: string | undefined;
-        }) =>
-          append({
-            kind: "message",
-            author: input.author,
-            payload: { text: input.text },
-          }).pipe(
-            Effect.map(
-              (receipt) =>
-                ({ _tag: "Accepted", receipt }) satisfies SubmitResult,
+        submit: (input: { readonly author: string; readonly text: string }) =>
+          log
+            .append({
+              kind: "message",
+              author: input.author,
+              payload: { text: input.text },
+            })
+            .pipe(
+              Effect.map(
+                (receipt) =>
+                  ({ _tag: "Accepted", receipt }) satisfies SubmitResult,
+              ),
+              Effect.catchTag("EntryTooLarge", (error) =>
+                Effect.succeed({
+                  _tag: "Rejected",
+                  reason: "EntryTooLarge",
+                  bytes: error.bytes,
+                  limit: error.limit,
+                } satisfies SubmitResult),
+              ),
+              /**
+               * `submit` only ever writes the `message` kind, so an unknown kind
+               * here is a programming error rather than bad input — it dies as a
+               * defect instead of being dressed up as a rejection.
+               */
+              // TODO: consider bad request
+              Effect.orDie,
             ),
-            Effect.catchTag("EntryTooLarge", (error) =>
-              Effect.succeed({
-                _tag: "Rejected",
-                reason: "EntryTooLarge",
-                bytes: error.bytes,
-                limit: error.limit,
-              } satisfies SubmitResult),
-            ),
-            /**
-             * `submit` only ever writes the `message` kind, so an unknown kind
-             * here is a programming error rather than bad input — it dies as a
-             * defect instead of being dressed up as a rejection.
-             */
-            Effect.orDie,
-          ),
         /**
          * Replay from a cursor. `after` is exclusive.
          *
