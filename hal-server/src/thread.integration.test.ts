@@ -6,6 +6,7 @@ import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
 
 import Stack from "../alchemy.run.ts";
+import * as HttpApiError from "./HttpApiError.ts";
 import { Echo } from "./Thread.ts";
 
 /**
@@ -71,7 +72,6 @@ describe("storage threshold", () => {
     "accepts input that is equal to the storage threshold",
     Effect.gen(function* () {
       const name = thread.isolationA;
-
       const atLimitText = "x".repeat(LIMIT - overhead);
 
       const { submit } = yield* HttpWorker;
@@ -85,13 +85,12 @@ describe("storage threshold", () => {
     "rejects input that is over the storage threshold",
     Effect.gen(function* () {
       const name = thread.isolationA;
-
-      const atLimitText = "x".repeat(LIMIT + 2);
+      const overLimitText = "x".repeat(LIMIT + 2);
 
       const { submit } = yield* HttpWorker;
 
-      const response = yield* submit(name, atLimitText);
-      expect(response.status).toBe(413);
+      const response = yield* submit(name, overLimitText);
+      expect(response.status).toBe(HttpApiError.PayloadTooLarge.status);
     }),
   );
 });

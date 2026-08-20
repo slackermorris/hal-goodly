@@ -2,6 +2,7 @@ import * as Cloudflare from 'alchemy/Cloudflare';
 import * as Effect from 'effect/Effect';
 import { HttpServerRequest } from 'effect/unstable/http/HttpServerRequest';
 import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
+import * as HttpApiError from './HttpApiError.ts';
 import Thread from './Thread.ts';
 
 /**
@@ -104,7 +105,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                * what keeps a rejected entry distinguishable from a defect.
                */
               return yield* HttpServerResponse.json(result, {
-                status: result._tag === 'Rejected' ? 413 : 200,
+                status: result._tag === 'Rejected' ? HttpApiError.PayloadTooLarge.status : 200,
               });
             }
 
