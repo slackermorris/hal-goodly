@@ -95,6 +95,10 @@ describe("storage threshold", () => {
   );
 });
 
+test("write and read to thread works as expected", Effect.gen(function*() {
+  
+}))
+
 test(
   "multiple clients can contribute to the same thread",
   Effect.gen(function* () {

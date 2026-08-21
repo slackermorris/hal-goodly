@@ -1,8 +1,8 @@
-import { Schema } from 'effect';
-import * as Effect from 'effect/Effect';
-import * as ErrorReporter from 'effect/ErrorReporter';
-import * as HttpServerRespondable from 'effect/unstable/http/HttpServerRespondable';
-import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
+import { Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as ErrorReporter from "effect/ErrorReporter";
+import * as HttpServerRespondable from "effect/unstable/http/HttpServerRespondable";
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 
 /**
  * The installed `effect` version's `HttpApiError` module covers the common
@@ -11,23 +11,25 @@ import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
  * pattern the upstream module uses for its own classes, so call sites can
  * import one `HttpApiError` namespace instead of two.
  */
-export * from 'effect/unstable/httpapi/HttpApiError';
+export * from "effect/unstable/httpapi/HttpApiError";
 
-const payloadTooLargeStatus = 413;
-const payloadTooLargeResponse = HttpServerResponse.empty({ status: payloadTooLargeStatus });
+const PAYLOAD_TOO_LARGE_CODE = 413;
+const payloadTooLargeResponse = HttpServerResponse.empty({
+  status: PAYLOAD_TOO_LARGE_CODE,
+});
 
 export class PayloadTooLarge extends Schema.ErrorClass<PayloadTooLarge>(
-  'effect/HttpApiError/PayloadTooLarge',
+  "effect/HttpApiError/PayloadTooLarge",
 )(
   {
-    _tag: Schema.tag('PayloadTooLarge'),
+    _tag: Schema.tag("PayloadTooLarge"),
   },
   {
-    description: 'PayloadTooLarge',
-    httpApiStatus: payloadTooLargeStatus,
+    description: "PayloadTooLarge",
+    httpApiStatus: PAYLOAD_TOO_LARGE_CODE,
   },
 ) {
-  static readonly status = payloadTooLargeStatus;
+  static readonly status = PAYLOAD_TOO_LARGE_CODE;
   readonly [ErrorReporter.ignore] = true;
   [HttpServerRespondable.symbol]() {
     return Effect.succeed(payloadTooLargeResponse);

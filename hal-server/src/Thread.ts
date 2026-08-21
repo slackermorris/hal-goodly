@@ -42,24 +42,31 @@ import * as EventLog from "./EventLog.ts";
  * re-runs every time Cloudflare reconstructs the instance.
  */
 
-/**
- * The write gate's verdict, as data.
- *
- * Typed failures cannot cross the RPC boundary — an `Effect` failure arrives
- * at the caller as an opaque `RpcCallError` with the tag flattened away, so
- * `catchTag` in the Worker would never match and a legitimate rejection would
- * be indistinguishable from a defect. Rejections are therefore caught inside
- * the object and returned, which is the same shape Alchemy's own Durable
- * Object fixtures use.
- */
-export type SubmitResult =
-  | { readonly _tag: "Accepted"; readonly receipt: EventLog.Receipt }
-  | {
-      readonly _tag: "Rejected";
-      readonly reason: "EntryTooLarge";
-      readonly bytes: number;
-      readonly limit: number;
-    };
+const BaseAcceptedResultSchema = Schema.Struct({
+  _tag: Schema.tag("Accepted"),
+  receipt: EventLog.ReceiptSchema,
+});
+
+const AcceptedResultSchema = BaseAcceptedResultSchema;
+
+const BaseRejectedResultSchema = Schema.Struct({
+  _tag: Schema.Literal("Rejected"),
+  reason: Schema.String,
+});
+
+const EntryTooLargeRejectedResultSchema = Schema.Struct({
+  ...BaseRejectedResultSchema.fields,
+  reason: Schema.Literal("EntryTooLarge"),
+  bytes: Schema.Number,
+  limit: Schema.Number,
+});
+
+const SubmitResultSchema = Schema.Union([
+  AcceptedResultSchema,
+  EntryTooLargeRejectedResultSchema,
+]);
+
+export type SubmitResult = typeof SubmitResultSchema.Type;
 
 /**
  * Scaffolding for the Phase 0/1 exit tests. `incarnation` changes every time
@@ -96,11 +103,6 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
       const incarnation = crypto.randomUUID();
 
       return {
-        /**
-         * A participant contributes to the conversation. Deliberately not
-         * `append(event)`: the caller states an intent and the log decides
-         * what entry that becomes.
-         */
         submit: (input: { readonly author: string; readonly text: string }) =>
           log
             .append({
@@ -109,26 +111,19 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
               payload: { text: input.text },
             })
             .pipe(
-              Effect.map(
-                (receipt) =>
-                  ({ _tag: "Accepted", receipt }) satisfies SubmitResult,
-              ),
+              Effect.map((receipt) => AcceptedResultSchema.make({ receipt })),
               Effect.catchTag("EntryTooLarge", (error) =>
-                Effect.succeed({
-                  _tag: "Rejected",
-                  reason: "EntryTooLarge",
-                  bytes: error.bytes,
-                  limit: error.limit,
-                } satisfies SubmitResult),
+                Effect.succeed(
+                  EntryTooLargeRejectedResultSchema.make({
+                    _tag: "Rejected",
+                    reason: "EntryTooLarge",
+                    bytes: error.bytes,
+                    limit: error.limit,
+                  }),
+                ),
               ),
-              /**
-               * `submit` only ever writes the `message` kind, so an unknown kind
-               * here is a programming error rather than bad input — it dies as a
-               * defect instead of being dressed up as a rejection.
-               */
-              // TODO: consider bad request
-              Effect.orDie,
             ),
+
         /**
          * Replay from a cursor. `after` is exclusive.
          *

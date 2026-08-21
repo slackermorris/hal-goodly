@@ -77,10 +77,12 @@ export const EventSchema = Schema.Struct({
 
 export type Event = typeof EventSchema.Type;
 
-export type Receipt = {
-  readonly seq: number;
-  readonly at: number;
-};
+export const ReceiptSchema = Schema.Struct({
+  seq: Schema.Number,
+  at: Schema.Number,
+});
+
+export type Receipt = typeof ReceiptSchema.Type;
 
 export class EntryTooLarge extends Schema.TaggedErrorClass<EntryTooLarge>()(
   "EntryTooLarge",
@@ -192,7 +194,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         return {
           seq: row.seq,
           at: row.at,
-        } satisfies Receipt;
+        };
       });
 
     /** Replay from a cursor. `after` is exclusive. */

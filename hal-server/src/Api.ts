@@ -1,9 +1,10 @@
-import * as Cloudflare from 'alchemy/Cloudflare';
-import * as Effect from 'effect/Effect';
-import { HttpServerRequest } from 'effect/unstable/http/HttpServerRequest';
-import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
-import * as HttpApiError from './HttpApiError.ts';
-import Thread from './Thread.ts';
+import * as Cloudflare from "alchemy/Cloudflare";
+import * as Effect from "effect/Effect";
+import { HttpServerRequest } from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
+import * as HttpApiError from "./HttpApiError.ts";
+import Thread, { type SubmitResult } from "./Thread.ts";
+import { Result } from "effect";
 
 /**
  * The entry Worker, and the *network* entry point — distinct from the domain
@@ -25,7 +26,7 @@ import Thread from './Thread.ts';
  * rather than re-deriving auth.
  */
 export default class Api extends Cloudflare.Workers.Worker<Api>()(
-  'Api',
+  "Api",
   {
     main: import.meta.url,
     observability: {
@@ -51,7 +52,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     build: process.env.WORKERD_INSPECTOR_ADDR
       ? {
           output: {
-            sourcemap: 'inline',
+            sourcemap: "inline",
             minify: false,
             // `URL` is a global in both Node and workerd, so this needs no
             // import — which matters, because this options object is itself
@@ -68,10 +69,10 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     return {
       fetch: Effect.gen(function* () {
         const request = yield* HttpServerRequest;
-        const url = new URL(request.url, 'http://hal.local');
+        const url = new URL(request.url, "http://hal.local");
 
-        if (url.pathname === '/health') {
-          return HttpServerResponse.text('ok');
+        if (url.pathname === "/health") {
+          return HttpServerResponse.text("ok");
         }
 
         const route = matchThreadRoute(url.pathname);
@@ -79,7 +80,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
           const thread = threads.getByName(route.threadId);
 
           switch (route.action) {
-            case 'submit': {
+            case "submit": {
               /**
                * A body rather than query params: a message can approach the
                * log's row cap, and a URL that size never reaches the server —
@@ -90,28 +91,30 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                 readonly text?: unknown;
                 readonly author?: unknown;
               };
-              const text = typeof body.text === 'string' ? body.text : null;
+              const text = typeof body.text === "string" ? body.text : null;
               if (text === null) {
-                return HttpServerResponse.text('text is required in the request body', { status: 400 });
+                return HttpServerResponse.text(
+                  "text is required in the request body",
+                  { status: 400 },
+                );
               }
+
+
+
               const result = yield* thread.submit({
-                author: typeof body.author === 'string' ? body.author : 'anonymous',
+                author:
+                  typeof body.author === "string" ? body.author : "anonymous",
                 text,
               });
-              /**
-               * The write gate's rejection arrives as data rather than as a
-               * typed failure, because an `Effect` failure crossing the
-               * Durable Object RPC boundary loses its tag. Mapping it here is
-               * what keeps a rejected entry distinguishable from a defect.
-               */
+
               return yield* HttpServerResponse.json(result, {
-                status: result._tag === 'Rejected' ? HttpApiError.PayloadTooLarge.status : 200,
+                status: submitResultStatus(result),
               });
             }
 
-            case 'read': {
-              const after = Number(url.searchParams.get('after') ?? '0');
-              const limit = url.searchParams.get('limit');
+            case "read": {
+              const after = Number(url.searchParams.get("after") ?? "0");
+              const limit = url.searchParams.get("limit");
               const result = yield* thread.read(
                 Number.isFinite(after) ? after : 0,
                 limit === null ? undefined : Number(limit),
@@ -119,8 +122,10 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
               return yield* HttpServerResponse.json(result);
             }
 
-            case 'diagnostics':
-              return yield* HttpServerResponse.json(yield* thread.diagnostics());
+            case "diagnostics":
+              return yield* HttpServerResponse.json(
+                yield* thread.diagnostics(),
+              );
 
             /**
              * `abort` destroys the instance serving this very request, so the
@@ -128,19 +133,19 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
              * instead of a status code. That is the intended behaviour and the
              * test treats a failed request here as success.
              */
-            case 'evict': {
+            case "evict": {
               yield* thread.evict();
-              return HttpServerResponse.text('evicted');
+              return HttpServerResponse.text("evicted");
             }
           }
         }
 
-        return HttpServerResponse.text('not found', { status: 404 });
+        return HttpServerResponse.text("not found", { status: 404 });
       }).pipe(
         Effect.catchCause((cause) =>
           Effect.as(
-            Effect.logError('unhandled request failure', cause),
-            HttpServerResponse.text('internal server error', { status: 500 }),
+            Effect.logError("unhandled request failure", cause),
+            HttpServerResponse.text("internal server error", { status: 500 }),
           ),
         ),
       ),
@@ -148,7 +153,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
   }),
 ) {}
 
-const ACTIONS = ['submit', 'read', 'diagnostics', 'evict'] as const;
+const ACTIONS = ["submit", "read", "diagnostics", "evict"] as const;
 
 type ThreadRoute = {
   readonly threadId: string;
@@ -156,12 +161,32 @@ type ThreadRoute = {
 };
 
 const matchThreadRoute = (pathname: string): ThreadRoute | null => {
-  const segments = pathname.split('/').filter((segment) => segment !== '');
-  if (segments.length !== 3 || segments[0] !== 'threads') return null;
+  const segments = pathname.split("/").filter((segment) => segment !== "");
+  if (segments.length !== 3 || segments[0] !== "threads") return null;
 
   const [, threadId, action] = segments;
-  if (threadId === undefined || threadId === '') return null;
+  if (threadId === undefined || threadId === "") return null;
   if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) return null;
 
   return { threadId, action: action as (typeof ACTIONS)[number] };
+};
+
+const assertUnreachable = (value: never): never => {
+  throw new Error(`unreachable submit result: ${JSON.stringify(value)}`);
+};
+
+const submitResultStatus = (result: SubmitResult): number => {
+  switch (result._tag) {
+    case "Accepted":
+      return 200;
+    case "Rejected":
+      switch (result.reason) {
+        case "EntryTooLarge":
+          return HttpApiError.PayloadTooLarge.status;
+        default:
+          return assertUnreachable(result.reason);
+      }
+    default:
+      return assertUnreachable(result);
+  }
 };
