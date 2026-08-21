@@ -42,29 +42,10 @@ import * as EventLog from "./EventLog.ts";
  * re-runs every time Cloudflare reconstructs the instance.
  */
 
-const BaseAcceptedResultSchema = Schema.Struct({
-  _tag: Schema.tag("Accepted"),
-  receipt: EventLog.ReceiptSchema,
+export const SubmitResultSchema = Schema.TaggedUnion({
+  Accepted: { receipt: EventLog.ReceiptSchema },
+  EntryTooLarge: { bytes: Schema.Number, limit: Schema.Number },
 });
-
-const AcceptedResultSchema = BaseAcceptedResultSchema;
-
-const BaseRejectedResultSchema = Schema.Struct({
-  _tag: Schema.Literal("Rejected"),
-  reason: Schema.String,
-});
-
-const EntryTooLargeRejectedResultSchema = Schema.Struct({
-  ...BaseRejectedResultSchema.fields,
-  reason: Schema.Literal("EntryTooLarge"),
-  bytes: Schema.Number,
-  limit: Schema.Number,
-});
-
-const SubmitResultSchema = Schema.Union([
-  AcceptedResultSchema,
-  EntryTooLargeRejectedResultSchema,
-]);
 
 export type SubmitResult = typeof SubmitResultSchema.Type;
 
@@ -111,12 +92,12 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
               payload: { text: input.text },
             })
             .pipe(
-              Effect.map((receipt) => AcceptedResultSchema.make({ receipt })),
+              Effect.map((receipt) =>
+                SubmitResultSchema.cases.Accepted.make({ receipt }),
+              ),
               Effect.catchTag("EntryTooLarge", (error) =>
                 Effect.succeed(
-                  EntryTooLargeRejectedResultSchema.make({
-                    _tag: "Rejected",
-                    reason: "EntryTooLarge",
+                  SubmitResultSchema.cases.EntryTooLarge.make({
                     bytes: error.bytes,
                     limit: error.limit,
                   }),

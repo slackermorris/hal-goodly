@@ -3,8 +3,7 @@ import * as Effect from "effect/Effect";
 import { HttpServerRequest } from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import * as HttpApiError from "./HttpApiError.ts";
-import Thread, { type SubmitResult } from "./Thread.ts";
-import { Result } from "effect";
+import Thread, { SubmitResultSchema } from "./Thread.ts";
 
 /**
  * The entry Worker, and the *network* entry point — distinct from the domain
@@ -99,8 +98,6 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                 );
               }
 
-
-
               const result = yield* thread.submit({
                 author:
                   typeof body.author === "string" ? body.author : "anonymous",
@@ -108,7 +105,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
               });
 
               return yield* HttpServerResponse.json(result, {
-                status: submitResultStatus(result),
+                status: getResultStatus(result),
               });
             }
 
@@ -171,22 +168,7 @@ const matchThreadRoute = (pathname: string): ThreadRoute | null => {
   return { threadId, action: action as (typeof ACTIONS)[number] };
 };
 
-const assertUnreachable = (value: never): never => {
-  throw new Error(`unreachable submit result: ${JSON.stringify(value)}`);
-};
-
-const submitResultStatus = (result: SubmitResult): number => {
-  switch (result._tag) {
-    case "Accepted":
-      return 200;
-    case "Rejected":
-      switch (result.reason) {
-        case "EntryTooLarge":
-          return HttpApiError.PayloadTooLarge.status;
-        default:
-          return assertUnreachable(result.reason);
-      }
-    default:
-      return assertUnreachable(result);
-  }
-};
+const getResultStatus = SubmitResultSchema.match({
+  Accepted: () => 200,
+  EntryTooLarge: () => HttpApiError.PayloadTooLarge.status,
+});
