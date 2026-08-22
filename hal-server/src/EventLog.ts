@@ -1,6 +1,13 @@
 import type * as Cloudflare from "alchemy/Cloudflare";
-import { Console, Option, Schema } from "effect";
+import { Option, Schema } from "effect";
 import * as Effect from "effect/Effect";
+import {
+  decodeEvent,
+  encodeMessagePayload,
+  type Event,
+  type EventInput,
+} from "./Event.ts";
+import * as TaggedErrors from "./tagged-errors";
 
 /**
  * The append-only, ordered event log — the spine of the whole system.
@@ -17,6 +24,9 @@ import * as Effect from "effect/Effect";
  * it was) was the thing that kept the two concepts blurred; the Cloudflare
  * Agents SDK names its equivalents for the mechanism too — `resumable-stream`,
  * `turn-queue`, `orphan-store` — never for the object that holds them.
+ *
+ * What an event *is* lives in `Event.ts`; this module only moves events in
+ * and out of the table.
  */
 
 /**
@@ -38,9 +48,10 @@ const ROW_MAX_BYTES = 1_800_000;
  * because the first deletion path to arrive (retention, compaction in Phase 3,
  * a manual repair) would otherwise reintroduce the hazard quietly.
  *
- * The payload stays opaque and the only index is the one the log actually
- * queries by. Replay reads by `seq` (the primary key). Nothing else earns an index,
- * so an evolving event kind stays a code change rather than a migration.
+ * The payload column stays plain JSON text and the only index is the one the
+ * log actually queries by. Replay reads by `seq` (the primary key). Nothing
+ * else earns an index, so an evolving event kind stays a code change (a new
+ * variant in `Event.ts`) rather than a migration.
  */
 const migration = `CREATE TABLE IF NOT EXISTS events (
      seq           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,52 +61,12 @@ const migration = `CREATE TABLE IF NOT EXISTS events (
      at            INTEGER NOT NULL
    )`;
 
-/**
- * Strict on write: an unknown kind is rejected at the boundary rather than
- * persisted, because the log is authoritative and cannot hold garbage. The
- * same literal set is what makes the read path *forgiving* — a row whose kind
- * is no longer recognised fails to decode and costs one entry rather than
- * poisoning the whole replay.
- */
-export const EventKind = Schema.Literals(["message"]);
-
-/**
- * A `Schema.Struct` rather than a `Schema.Class`, and the whole public surface
- * below is plain data for the same reason: **everything a Durable Object
- * returns over RPC is structured-cloned, and a class instance is not
- * cloneable.** Decoding through this yields a plain object that survives the
- * boundary; `new Event(...)` would fail at runtime with a `DataCloneError` no
- * typechecker catches.
- */
-export const EventSchema = Schema.Struct({
-  seq: Schema.Int,
-  kind: EventKind,
-  author: Schema.String,
-  payload: Schema.Unknown,
-  at: Schema.Int,
-});
-
-export type Event = typeof EventSchema.Type;
-
 export const ReceiptSchema = Schema.Struct({
   seq: Schema.Number,
   at: Schema.Number,
 });
 
 export type Receipt = typeof ReceiptSchema.Type;
-
-export class EntryTooLarge extends Schema.TaggedErrorClass<EntryTooLarge>()(
-  "EntryTooLarge",
-  {
-    bytes: Schema.Int,
-    limit: Schema.Int,
-  },
-) {}
-
-export class UnknownEventKind extends Schema.TaggedErrorClass<UnknownEventKind>()(
-  "UnknownEventKind",
-  { kind: Schema.String },
-) {}
 
 /**
  * One shape, because a cursor cannot currently fall out of the log — nothing
@@ -119,9 +90,6 @@ export type ReadResult = {
   readonly skipped: number;
 };
 
-const decodeEvent = Schema.decodeUnknownOption(EventSchema);
-const decodeEventKind = Schema.decodeUnknownOption(EventKind);
-
 const DEFAULT_READ_LIMIT = 256;
 
 /**
@@ -144,33 +112,24 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     yield* sql.exec(migration);
 
-    // TODO: only allow for kind being a "message",
-
-    // improper use of schema, is it really the eventlogs job to decode it?
-
-    const append = (input: {
-      readonly kind: string;
-      readonly author: string;
-      readonly payload: unknown;
-    }) =>
+    const append = (input: EventInput) =>
       Effect.gen(function* () {
-        const kind = decodeEventKind(input.kind);
-        if (Option.isNone(kind)) {
-          return yield* Effect.fail(
-            new UnknownEventKind({
-              _tag: "UnknownEventKind",
-              kind: input.kind,
-            }),
+        const payload = encodeMessagePayload(input.payload);
+        if (Option.isNone(payload)) {
+          /**
+           * A typed input that fails to encode is a bug in the event
+           * vocabulary's schema, not a caller error — a defect rather than a
+           * failure.
+           */
+          return yield* Effect.die(
+            new Error(`unencodable payload for kind ${input.kind}`),
           );
         }
 
-        // TODO: why we should not use JSON stringify https://dev.to/dzakh/encode-dont-stringify-how-jsonstringify-lies-to-you-38fk
-
-        const payload = JSON.stringify(input.payload ?? null);
-        const bytes = new TextEncoder().encode(payload).byteLength;
+        const bytes = new TextEncoder().encode(payload.value).byteLength;
         if (bytes > ROW_MAX_BYTES) {
           return yield* Effect.fail(
-            new EntryTooLarge({
+            new TaggedErrors.EntryTooLarge({
               bytes,
               limit: ROW_MAX_BYTES,
             }),
@@ -185,7 +144,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
              RETURNING seq, at`,
           input.kind,
           input.author,
-          payload,
+          payload.value,
           at,
         );
 
@@ -220,8 +179,8 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         let skipped = 0;
 
         for (const row of rows) {
-          const decoded = decodeRow(row);
-          if (decoded === null) {
+          const decoded = decodeEvent(row);
+          if (Option.isNone(decoded)) {
             skipped += 1;
             /**
              * Skip *and log*. The SDK this borrows from skips silently, and a
@@ -234,7 +193,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
             });
             continue;
           }
-          events.push(decoded);
+          events.push(decoded.value);
         }
 
         const nextCursor = rows[rows.length - 1]?.seq ?? after;
@@ -256,34 +215,3 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     return { append, read, count } as const;
   });
-
-/**
- * Forgiving on read, at the opposite end of the boundary from the write gate.
- * The write gate keeps garbage out; this stops yesterday's garbage — written
- * before the gate was tight — from making a thread unopenable. The event
- * schema will move during Phase 1, so both are needed at once.
- */
-const decodeRow = (row: {
-  seq: number;
-  kind: string;
-  author: string;
-  payload: string;
-  at: number;
-}): Event | null => {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(row.payload);
-  } catch {
-    return null;
-  }
-  const decoded = decodeEvent({ ...row, payload });
-  if (decoded._tag !== "Some") return null;
-  return {
-    seq: row.seq,
-    // @ts-ignore: I'm working on this.
-    kind: row.kind,
-    author: row.author,
-    payload,
-    at: row.at,
-  };
-};

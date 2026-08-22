@@ -8,9 +8,6 @@ import Stack from "../alchemy.run.ts";
 import * as HttpApiError from "./HttpApiError.ts";
 
 /**
- * > An echo round-trips through an Effect runtime at a Durable Object
- * > entrypoint, with Alchemy-declared bindings typed end to end.
- *
  * This test stands up the real stack and drives it over HTTP.
  *
  * `dev: true` keeps the Worker in local workerd rather than deploying it to the
@@ -93,7 +90,9 @@ describe("storage threshold", () => {
 
 test(
   "write and read to thread works as expected",
-  Effect.gen(function* () {}),
+  Effect.gen(function* () {
+    
+  }),
 );
 
 test(

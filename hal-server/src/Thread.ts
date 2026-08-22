@@ -84,7 +84,7 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
       const incarnation = crypto.randomUUID();
 
       return {
-        submit: (input: { readonly author: string; readonly text: string }) =>
+        submit: (input) =>
           log
             .append({
               kind: "message",
