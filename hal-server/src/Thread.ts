@@ -137,16 +137,3 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
     });
   }),
 ) {}
-
-const EchoSchema = Schema.Struct({
-  text: Schema.String,
-  seq: Schema.Number,
-  threadId: Schema.String,
-});
-
-export class Echo extends Schema.Class<Echo>("Echo")(EchoSchema) {
-  static formatEcho(text: string) {
-    const formatted = text.trim().replace(/\s+/g, " ");
-    return formatted;
-  }
-}

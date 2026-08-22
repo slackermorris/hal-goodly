@@ -1,13 +1,11 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Vitest from "alchemy/Test/Vitest";
-import { Schema } from "effect";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
 
 import Stack from "../alchemy.run.ts";
 import * as HttpApiError from "./HttpApiError.ts";
-import { Echo } from "./Thread.ts";
 
 /**
  * > An echo round-trips through an Effect runtime at a Durable Object
@@ -26,8 +24,6 @@ const { test, beforeAll, deploy, destroy, afterAll } = Vitest.make({
   providers: Cloudflare.providers(),
   dev: true,
 });
-
-const decodeReply = Schema.decodeUnknownOption(Echo);
 
 const stack = beforeAll(deploy(Stack));
 
@@ -95,9 +91,10 @@ describe("storage threshold", () => {
   );
 });
 
-test("write and read to thread works as expected", Effect.gen(function*() {
-  
-}))
+test(
+  "write and read to thread works as expected",
+  Effect.gen(function* () {}),
+);
 
 test(
   "multiple clients can contribute to the same thread",
