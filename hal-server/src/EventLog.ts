@@ -61,12 +61,11 @@ const migration = `CREATE TABLE IF NOT EXISTS events (
      at            INTEGER NOT NULL
    )`;
 
-export const ReceiptSchema = Schema.Struct({
+export const AppendResponseSchema = Schema.Struct({
   seq: Schema.Number,
   at: Schema.Number,
 });
-
-export type Receipt = typeof ReceiptSchema.Type;
+type AppendResponseSchema = typeof AppendResponseSchema.Type;
 
 /**
  * One shape, because a cursor cannot currently fall out of the log — nothing
@@ -116,11 +115,6 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
       Effect.gen(function* () {
         const payload = encodeMessagePayload(input.payload);
         if (Option.isNone(payload)) {
-          /**
-           * A typed input that fails to encode is a bug in the event
-           * vocabulary's schema, not a caller error — a defect rather than a
-           * failure.
-           */
           return yield* Effect.die(
             new Error(`unencodable payload for kind ${input.kind}`),
           );
@@ -138,7 +132,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
         const at = Date.now();
 
-        const inserted = yield* query<{ seq: number; at: number }>(
+        const cursor = yield* sql.exec<AppendResponseSchema>(
           `INSERT INTO events (kind, author, payload, at)
              VALUES (?, ?, ?, ?)
              RETURNING seq, at`,
@@ -148,12 +142,9 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           at,
         );
 
-        const row = inserted[0];
+        const row = yield* cursor.one();
 
-        return {
-          seq: row.seq,
-          at: row.at,
-        };
+        return row;
       });
 
     /** Replay from a cursor. `after` is exclusive. */

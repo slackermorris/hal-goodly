@@ -43,7 +43,7 @@ import * as EventLog from "./EventLog.ts";
  */
 
 export const SubmitResultSchema = Schema.TaggedUnion({
-  Accepted: { receipt: EventLog.ReceiptSchema },
+  Accepted: { receipt: EventLog.AppendResponseSchema },
   EntryTooLarge: { bytes: Schema.Number, limit: Schema.Number },
 });
 
