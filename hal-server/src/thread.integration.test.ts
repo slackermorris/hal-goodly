@@ -6,6 +6,7 @@ import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
 
 import Stack from "../alchemy.run.ts";
 import * as HttpApiError from "./HttpApiError.ts";
+import { Schema } from "effect";
 
 /**
  * This test stands up the real stack and drives it over HTTP.
@@ -64,12 +65,12 @@ describe("storage threshold", () => {
   test(
     "accepts input that is equal to the storage threshold",
     Effect.gen(function* () {
-      const name = thread.isolationA;
+      const threadName = thread.isolationA;
       const atLimitText = "x".repeat(LIMIT - overhead);
 
       const { submit } = yield* HttpWorker;
 
-      const response = yield* submit(name, atLimitText);
+      const response = yield* submit({ threadName, text: atLimitText });
       expect(response.status).toBe(200);
     }),
   );
@@ -77,33 +78,76 @@ describe("storage threshold", () => {
   test(
     "rejects input that is over the storage threshold",
     Effect.gen(function* () {
-      const name = thread.isolationA;
+      const threadName = thread.isolationA;
       const overLimitText = "x".repeat(LIMIT + 2);
 
       const { submit } = yield* HttpWorker;
 
-      const response = yield* submit(name, overLimitText);
+      const response = yield* submit({ threadName, text: overLimitText });
       expect(response.status).toBe(HttpApiError.PayloadTooLarge.status);
     }),
   );
 });
 
 test(
-  "write and read to thread works as expected",
+  "user can write to thread",
   Effect.gen(function* () {
-    
+    const author = "larry mcmurty";
+    const threadName = thread.isolationB;
+    const text = "user written message";
+    const cursor = 0;
+
+    const { submit, read } = yield* HttpWorker;
+
+    yield* submit({ threadName, text, author });
+
+    const response = yield* read(threadName, cursor);
+    const body = yield* response.json;
+
+    expect(body).toEqual({
+      events: [
+        {
+          kind: "message",
+          payload: {
+            text: text,
+          },
+          seq: 1,
+          author: author,
+          at: expect.any(String),
+        },
+      ],
+      nextCursor: 1,
+      skipped: 0,
+    });
   }),
 );
 
 test(
-  "multiple clients can contribute to the same thread",
+  "multiple users can write to same thread, multiplayer is supported",
   Effect.gen(function* () {
-    const name = thread.isolationA;
-    const { submit } = yield* HttpWorker;
+    const authorA = "larry mcmurty";
+    const authorB = "cormack mccarthy";
 
-    yield* submit(name, "first");
+    const threadName = "thread-c";
 
-    expect(2).toBe(2);
+    const authorAMessage = "i'm the best author";
+    const authorBMessage = "no, i'm the best author";
+
+    const cursor = 0;
+
+    const { submit, read } = yield* HttpWorker;
+
+    yield* submit({ threadName, text: authorAMessage, author: authorA });
+    yield* submit({ threadName, text: authorBMessage, author: authorB });
+
+    const response = yield* read(threadName, cursor);
+    const body = yield* response.json;
+
+    // TODO: decode using the event
+
+    const { events = [] } = body;
+    expect(events).toHaveLength(2);
+    expect(events.map(({ author }) => author)).toEqual([authorA, authorB]);
   }),
 );
 
@@ -281,22 +325,6 @@ test(
 //   }),
 // );
 
-type Receipt = { seq: number; at: number; deduplicated: boolean };
-type SubmitResult =
-  | { _tag: "Accepted"; receipt: Receipt }
-  | { _tag: "Rejected"; reason: string; bytes: number; limit: number };
-type LogEvent = {
-  seq: number;
-  kind: string;
-  author: string;
-  payload: { text: string };
-  at: number;
-};
-type ReadResult = {
-  events: LogEvent[];
-  nextCursor: number;
-  skipped: number;
-};
 type Diagnostics = {
   incarnation: string;
   memoryAppends: number;
@@ -319,13 +347,22 @@ const HttpWorker = Effect.gen(function* () {
 
   return {
     baseUrl,
-    submit: (name: string, text: string) =>
+    submit: ({
+      threadName,
+      text,
+      author = "anonymous",
+    }: {
+      threadName: string;
+      text: string;
+      author?: string;
+    }) =>
       Effect.gen(function* () {
         const request = HttpClientRequest.post(
-          `${baseUrl}/threads/${name}/submit`,
+          `${baseUrl}/threads/${threadName}/submit`,
         ).pipe(
           HttpClientRequest.bodyJsonUnsafe({
             text,
+            author,
           }),
         );
 
@@ -334,13 +371,11 @@ const HttpWorker = Effect.gen(function* () {
 
     read: (name: string, after: number) =>
       Effect.gen(function* () {
-        const response = yield* client.execute(
+        return yield* client.execute(
           HttpClientRequest.get(
             `${baseUrl}/threads/${name}/read?after=${after}`,
           ),
         );
-        expect(response.status).toBe(200);
-        return (yield* response.json) as ReadResult;
       }),
 
     head: (name: string) =>

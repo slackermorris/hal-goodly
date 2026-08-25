@@ -112,10 +112,12 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
             case "read": {
               const after = Number(url.searchParams.get("after") ?? "0");
               const limit = url.searchParams.get("limit");
+
               const result = yield* thread.read(
                 Number.isFinite(after) ? after : 0,
                 limit === null ? undefined : Number(limit),
               );
+
               return yield* HttpServerResponse.json(result);
             }
 

@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import {
   decodeEvent,
   encodeMessagePayload,
-  type Event,
+  Event,
   type EventInput,
 } from "./Event.ts";
 import * as TaggedErrors from "./tagged-errors";
@@ -65,7 +65,6 @@ export const AppendResponseSchema = Schema.Struct({
   seq: Schema.Number,
   at: Schema.Number,
 });
-type AppendResponseSchema = typeof AppendResponseSchema.Type;
 
 /**
  * One shape, because a cursor cannot currently fall out of the log — nothing
@@ -83,11 +82,11 @@ type AppendResponseSchema = typeof AppendResponseSchema.Type;
  * must cost exactly one entry, and that is only provable if the count is part
  * of the result rather than only a log line.
  */
-export type ReadResult = {
-  readonly events: ReadonlyArray<Event>;
-  readonly nextCursor: number;
-  readonly skipped: number;
-};
+export const ReadResponseSchema = Schema.Struct({
+  events: Schema.Array(Event),
+  nextCursor: Schema.Number,
+  skipped: Schema.Number,
+});
 
 const DEFAULT_READ_LIMIT = 256;
 
@@ -132,7 +131,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
         const at = Date.now();
 
-        const cursor = yield* sql.exec<AppendResponseSchema>(
+        const cursor = yield* sql.exec<typeof AppendResponseSchema.Type>(
           `INSERT INTO events (kind, author, payload, at)
              VALUES (?, ?, ?, ?)
              RETURNING seq, at`,
@@ -147,16 +146,9 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         return row;
       });
 
-    /** Replay from a cursor. `after` is exclusive. */
     const read = (after: number, limit = DEFAULT_READ_LIMIT) =>
       Effect.gen(function* () {
-        const rows = yield* query<{
-          seq: number;
-          kind: string;
-          author: string;
-          payload: string;
-          at: number;
-        }>(
+        const rows = yield* query<typeof Event.Encoded>(
           `SELECT seq, kind, author, payload, at
              FROM events
             WHERE seq > ?
@@ -166,30 +158,30 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           limit,
         );
 
-        const events: Array<Event> = [];
         let skipped = 0;
+        const events: Array<typeof Event.Type> = [];
 
         for (const row of rows) {
           const decoded = decodeEvent(row);
           if (Option.isNone(decoded)) {
             skipped += 1;
-            /**
-             * Skip *and log*. The SDK this borrows from skips silently, and a
-             * log that quietly drops an entry during replay is
-             * indistinguishable from a cursor bug.
-             */
+
             yield* Effect.logWarning("dropping undecodable log entry", {
               seq: row.seq,
               kind: row.kind,
             });
+
             continue;
           }
           events.push(decoded.value);
         }
 
+        console.log("logging out the events", { events });
+
+        // TODO: fix this logic
         const nextCursor = rows[rows.length - 1]?.seq ?? after;
 
-        return { events, nextCursor, skipped } satisfies ReadResult;
+        return ReadResponseSchema.make({ events, nextCursor, skipped });
       });
 
     /**

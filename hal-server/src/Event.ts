@@ -16,7 +16,13 @@ import { Schema } from "effect";
 const BaseEvent = Schema.Struct({
   seq: Schema.Int,
   author: Schema.String,
-  at: Schema.Int,
+  /**
+   * `DateFromMillis` rather than `DateTimeUtcFromMillis`: the domain event
+   * crosses a Workers RPC boundary, and RPC serializes with structured clone,
+   * not JSON. Structured clone has native support for `Date` but not for Effect's `DateTime.Utc`
+   * that combination fails with `DataCloneError: Could not serialize object of type "Object"`.
+   */
+  at: Schema.DateFromMillis,
 });
 
 /** The domain shape of a message's payload — knows nothing about storage. */
@@ -47,9 +53,7 @@ const MessageEvent = Schema.Struct({
   payload: MessagePayloadFromJsonString,
 });
 
-const Event = Schema.Union([MessageEvent]);
-
-export type Event = typeof Event.Type;
+export const Event = Schema.Union([MessageEvent]);
 
 /**
  * What `append` accepts — the domain event minus `seq` and `at`, which are
@@ -57,7 +61,7 @@ export type Event = typeof Event.Type;
  * caller cannot construct an unknown kind or a malformed payload. Input that
  * is genuinely unknown (RPC, HTTP) is decoded at that outer boundary.
  */
-export type EventInput = Omit<Event, "seq" | "at">;
+export type EventInput = Omit<typeof Event.Type, "seq" | "at">;
 
 /**
  * Stored row → domain event; forgiving on read. Malformed JSON, an
@@ -75,16 +79,3 @@ export const decodeEvent = Schema.decodeUnknownOption(Event);
 export const encodeMessagePayload = Schema.encodeOption(
   MessagePayloadFromJsonString,
 );
-
-const PayloadSchema = Schema.Struct({
-  payment: Schema.BigInt,
-});
-
-const inputPayload = PayloadSchema.make({
-  payment: 1000n,
-});
-
-const codec = Schema.toCodecJson(PayloadSchema);
-const encode = Schema.encodeSync(codec);
-
-const storagePayload = JSON.stringify(encode(inputPayload));
