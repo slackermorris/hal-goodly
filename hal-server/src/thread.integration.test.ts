@@ -3,10 +3,12 @@ import * as Vitest from "alchemy/Test/Vitest";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
 
 import Stack from "../alchemy.run.ts";
+import { ReadResponseSchema } from "./EventLog.ts";
 import * as HttpApiError from "./HttpApiError.ts";
-import { Schema } from "effect";
+import type { Diagnostics } from "./Thread.ts";
 
 /**
  * This test stands up the real stack and drives it over HTTP.
@@ -141,11 +143,15 @@ test(
     yield* submit({ threadName, text: authorBMessage, author: authorB });
 
     const response = yield* read(threadName, cursor);
-    const body = yield* response.json;
 
-    // TODO: decode using the event
+    /**
+     * Decoded through the same schema the Worker encoded with, so the assertion
+     * below is typed rather than cast. The decode is itself an assertion: a
+     * response whose shape has drifted fails here, which a `toEqual` over raw
+     * JSON would only catch for the fields it happens to name.
+     */
+    const { events } = yield* decodeReadResponse(response);
 
-    const { events = [] } = body;
     expect(events).toHaveLength(2);
     expect(events.map(({ author }) => author)).toEqual([authorA, authorB]);
   }),
@@ -325,13 +331,13 @@ test(
 //   }),
 // );
 
-type Diagnostics = {
-  incarnation: string;
-  memoryAppends: number;
-  rows: number;
-  kvSeq: number | null;
-  databaseSize: number;
-};
+/**
+ * The counterpart to the Worker's `HttpServerResponse.schemaJson`: both name the
+ * same domain schema and both derive the JSON from it, so the test's
+ * expectations are the domain type and a response that drifts from it cannot
+ * reach an assertion.
+ */
+const decodeReadResponse = HttpClientResponse.schemaBodyJson(ReadResponseSchema);
 
 const HttpWorker = Effect.gen(function* () {
   const { url: baseUrl } = yield* stack;

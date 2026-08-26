@@ -1,12 +1,7 @@
 import type * as Cloudflare from "alchemy/Cloudflare";
 import { Option, Schema } from "effect";
 import * as Effect from "effect/Effect";
-import {
-  decodeEvent,
-  encodeMessagePayload,
-  Event,
-  type EventInput,
-} from "./Event.ts";
+import { decodeEvent, encodeEvent, Event, type EventInput } from "./Event.ts";
 import * as TaggedErrors from "./tagged-errors";
 
 /**
@@ -82,6 +77,13 @@ export const AppendResponseSchema = Schema.Struct({
  * must cost exactly one entry, and that is only provable if the count is part
  * of the result rather than only a log line.
  */
+/**
+ * Built on {@link EventDomain} rather than on the row codec, which makes this
+ * one schema serve both jobs: `read` constructs its result with it, and the
+ * Worker's response and any client both name it and let the HTTP layer derive
+ * the JSON. Were it row-encoded instead, that derivation would pass the storage
+ * encoding through and ship `at` as millis and `payload` as JSON text.
+ */
 export const ReadResponseSchema = Schema.Struct({
   events: Schema.Array(Event),
   nextCursor: Schema.Number,
@@ -110,16 +112,22 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     yield* sql.exec(migration);
 
-    const append = (input: EventInput) =>
+    const append = (input: typeof Event.Type) =>
       Effect.gen(function* () {
-        const payload = encodeMessagePayload(input.payload);
-        if (Option.isNone(payload)) {
+        /**
+         * The whole row, not just the payload column. `seq` is omitted and `at`
+         * defaulted by the insert variant, so what comes back is exactly the
+         * set of columns to bind — and a model field with no column to write
+         * fails here rather than on every later read.
+         */
+        const insert = encodeEvent(input);
+        if (Option.isNone(insert)) {
           return yield* Effect.die(
-            new Error(`unencodable payload for kind ${input.kind}`),
+            new Error(`unencodable event for kind ${input.kind}`),
           );
         }
 
-        const bytes = new TextEncoder().encode(payload.value).byteLength;
+        const bytes = new TextEncoder().encode(insert.value.payload).byteLength;
         if (bytes > ROW_MAX_BYTES) {
           return yield* Effect.fail(
             new TaggedErrors.EntryTooLarge({
@@ -129,16 +137,14 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           );
         }
 
-        const at = Date.now();
-
         const cursor = yield* sql.exec<typeof AppendResponseSchema.Type>(
           `INSERT INTO events (kind, author, payload, at)
              VALUES (?, ?, ?, ?)
              RETURNING seq, at`,
-          input.kind,
-          input.author,
-          payload.value,
-          at,
+          insert.value.kind,
+          insert.value.author,
+          insert.value.payload,
+          insert.value.at,
         );
 
         const row = yield* cursor.one();

@@ -1,81 +1,50 @@
-import { Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
+
+// ─── Domain ──────────────────────────────────────────────────────────
+
+const MessagePayload = Schema.Struct({ text: Schema.String }).annotate({
+  identifier: "Event.Message.Payload",
+});
 
 /**
- * The event vocabulary. One rule holds everything together: the *domain*
- * schemas are the only hand-written shapes, and every encoding is a one-line
- * derivation of them — so no boundary's representation can drift from the
- * domain, and a future boundary (the API's wire codec) derives from the same
- * constants.
+ * One schema per event kind, and one encoding: `Type` is the domain event,
+ * `Encoded` is the SQLite row. Encode to write, decode to read, and the wire
+ * shape is derived from the same schema rather than declared — so this is the
+ * only place an event's shape is stated.
  *
- * Naming follows Effect's own split: domain shapes are plain nouns
- * (`MessagePayload`, `Event`), codec values carry the `TypeFromEncoded`
- * convention (`MessagePayloadFromJsonString`, like `NumberFromString`), and
- * the storage crossings are verbs (`decodeEvent`, `encodeMessagePayload`).
+ * Neither `seq` nor `at` is ever asked of a caller, and they are absent for
+ * different reasons: SQLite assigns `seq`, so it is optional — absent on the way
+ * in, present on the way out. The log assigns `at`, so it stays a required
+ * `Date` on the domain and is filled by the constructor default below.
  */
-
-const BaseEvent = Schema.Struct({
-  seq: Schema.Int,
+export const MessageEvent = Schema.Struct({
+  seq: Schema.Int.pipe(Schema.optional),
+  kind: Schema.Literal("message"),
   author: Schema.String,
   /**
    * `DateFromMillis` rather than `DateTimeUtcFromMillis`: the domain event
    * crosses a Workers RPC boundary, and RPC serializes with structured clone,
-   * not JSON. Structured clone has native support for `Date` but not for Effect's `DateTime.Utc`
-   * that combination fails with `DataCloneError: Could not serialize object of type "Object"`.
+   * not JSON. Structured clone has native support for `Date` but not for
+   * Effect's `DateTime.Utc` — that combination fails with `DataCloneError`.
    */
-  at: Schema.DateFromMillis,
-});
+  at: Schema.DateFromMillis.pipe(
+    Schema.withConstructorDefault(Effect.map(DateTime.now, DateTime.toDateUtc)),
+  ),
+  payload: Schema.fromJsonString(Schema.toCodecJson(MessagePayload)),
+}).annotate({ identifier: "Event.Message" });
 
-/** The domain shape of a message's payload — knows nothing about storage. */
-const MessagePayload = Schema.Struct({ text: Schema.String });
+export const Event = Schema.Union([MessageEvent])
+  .pipe(Schema.toTaggedUnion("kind"))
+  .annotate({ identifier: "Event" });
 
-/**
- * The storage encoding of that payload, derived: `Type` is still
- * `MessagePayload`, `Encoded` is the JSON text the payload column holds.
- * `toCodecJson` guarantees the intermediate value is lawful JSON (a future
- * BigInt or DateTime field gets its canonical JSON form instead of being
- * mangled by a bare `JSON.stringify`); `fromJsonString` prints it to text.
- */
-const MessagePayloadFromJsonString = Schema.fromJsonString(
-  Schema.toCodecJson(MessagePayload),
-);
+/** What `append` receives: the event before the log has stamped anything. */
+export type EventInput = (typeof MessageEvent)["~type.make.in"];
 
-/**
- * One variant per event kind, and each variant is a *codec*, not just a type:
- * its `Encoded` side is the SQLite row exactly as stored (payload as JSON
- * text, discriminated by the `kind` column) and its `Type` side is the domain
- * event (payload parsed and shape-checked). Decode and encode are the two
- * directions through the same schema, so the write format cannot drift from
- * the read expectation.
- */
-const MessageEvent = Schema.Struct({
-  ...BaseEvent.fields,
-  kind: Schema.Literal("message"),
-  payload: MessagePayloadFromJsonString,
-});
+// ─── Crossings ───────────────────────────────────────────────────────
 
-export const Event = Schema.Union([MessageEvent]);
-
-/**
- * What `append` accepts — the domain event minus `seq` and `at`, which are
- * the log's to assign. Strict on write is the typechecker's job: an internal
- * caller cannot construct an unknown kind or a malformed payload. Input that
- * is genuinely unknown (RPC, HTTP) is decoded at that outer boundary.
- */
-export type EventInput = Omit<typeof Event.Type, "seq" | "at">;
-
-/**
- * Stored row → domain event; forgiving on read. Malformed JSON, an
- * unrecognised kind and a shape-drifted payload are all the same failure:
- * `Option.none`, one skipped entry.
- */
+/** Storage → Domain; forgiving. A malformed row is `Option.none`, one skipped entry. */
 export const decodeEvent = Schema.decodeUnknownOption(Event);
 
-/**
- * Domain payload → JSON text for the payload column. Going through the
- * derived codec rather than a bare `JSON.stringify` means a value JSON cannot
- * represent fails the encode instead of being silently corrupted on its way
- * to disk.
- */
-export const encodeMessagePayload = Schema.encodeOption(
-  MessagePayloadFromJsonString,
-);
+/** Domain → Storage. */
+export const encodeEvent = (input: EventInput) =>
+  Schema.encodeOption(Event)(MessageEvent.make(input));

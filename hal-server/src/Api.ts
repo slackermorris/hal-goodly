@@ -1,7 +1,9 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Effect from "effect/Effect";
-import { HttpServerRequest } from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
+import { Result, Schema } from "effect";
+import { ReadResponseSchema } from "./EventLog.ts";
 import * as HttpApiError from "./HttpApiError.ts";
 import Thread, { SubmitResultSchema } from "./Thread.ts";
 
@@ -67,7 +69,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
     return {
       fetch: Effect.gen(function* () {
-        const request = yield* HttpServerRequest;
+        const request = yield* HttpServerRequest.HttpServerRequest;
         const url = new URL(request.url, "http://hal.local");
 
         if (url.pathname === "/health") {
@@ -86,22 +88,19 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                * the request line itself gets rejected long before workerd
                * sees it.
                */
-              const body = (yield* request.json) as {
-                readonly text?: unknown;
-                readonly author?: unknown;
-              };
-              const text = typeof body.text === "string" ? body.text : null;
-              if (text === null) {
+              const payload = yield* Effect.result(
+                HttpServerRequest.schemaBodyJson(SubmitMessagePayload),
+              );
+              if (Result.isFailure(payload)) {
                 return HttpServerResponse.text(
-                  "text is required in the request body",
+                  "expected a JSON body of { text: string, author?: string }",
                   { status: 400 },
                 );
               }
 
               const result = yield* thread.submit({
-                author:
-                  typeof body.author === "string" ? body.author : "anonymous",
-                text,
+                author: payload.success.author ?? "anonymous",
+                text: payload.success.text,
               });
 
               return yield* HttpServerResponse.json(result, {
@@ -118,7 +117,16 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                 limit === null ? undefined : Number(limit),
               );
 
-              return yield* HttpServerResponse.json(result);
+              /**
+               * `schemaJson` rather than `json`: the log hands back a *domain*
+               * value (`at` is a `Date`, the payload a parsed object), and a
+               * bare stringify would publish whatever `JSON.stringify` happens
+               * to do with it as the API's contract. `schemaJson` derives the
+               * JSON encoding from the schema instead, so the wire shape is a
+               * consequence of the domain model and an unrepresentable value
+               * fails the encode rather than being silently mangled.
+               */
+              return yield* readResponse(result);
             }
 
             case "diagnostics":
@@ -151,6 +159,22 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     };
   }),
 ) {}
+
+// ─── Payload schemas ─────────────────────────────────────────────────
+
+/**
+ * The submit request body, declared rather than derived from the event: what a
+ * client is allowed to send is its own contract, and it is already smaller than
+ * the event it produces — `seq`, `at` and `kind` are all the server's to decide.
+ */
+const SubmitMessagePayload = Schema.Struct({
+  text: Schema.String,
+  author: Schema.optional(Schema.String),
+});
+
+// ─── Responses ───────────────────────────────────────────────────────
+
+const readResponse = HttpServerResponse.schemaJson(ReadResponseSchema);
 
 const ACTIONS = ["submit", "read", "diagnostics", "evict"] as const;
 

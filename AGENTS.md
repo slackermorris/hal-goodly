@@ -49,6 +49,18 @@ Follow the existing Effect idiom, which matches the sibling `gen-ui-ne` project:
 - Capabilities are expressed in the requirements channel. A sub-agent that must
   not write should not be _able_ to — if it can reach a write capability, the
   type is wrong, not the prompt.
+- Schema naming follows Effect's own split: domain shapes are plain nouns
+  (`MessagePayload`, `Event`), codec values carry the `TypeFromEncoded`
+  convention (`EventFromRow`, like `NumberFromString`), and the crossings are
+  verbs (`decodeEvent`, `encodeEventForInsert`).
+- Boundary shapes are built by _addition_, never by subtraction. Declare the
+  smallest shape — what a caller may send — and compose upward with the fields
+  the server assigns. No `Omit` of a schema type; the vendored repos never do
+  it, and a shape defined by what it lacks breaks as soon as a boundary needs a
+  field the domain has not got.
+- The JSON encoding is never declared. `Schema.toCodecJson` derives it, and
+  every HTTP entry point applies that derivation to the schema it is handed —
+  so hand them a domain-encoded schema, not a storage-encoded one.
 
 ## Commands
 
