@@ -1,7 +1,7 @@
 import type * as Cloudflare from "alchemy/Cloudflare";
 import { Option, Schema } from "effect";
 import * as Effect from "effect/Effect";
-import { decodeEvent, encodeEvent, Event, type EventInput } from "./Event.ts";
+import { decodeEvent, encodeEvent, Event } from "./Event.ts";
 import * as TaggedErrors from "./tagged-errors";
 
 /**
@@ -72,7 +72,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     yield* sql.exec(migration);
 
-    const append = (input: EventInput) =>
+    const append = (input: typeof Event.Type) =>
       Effect.gen(function* () {
         /**
          * The whole row, not just the payload column. `seq` is omitted and `at`

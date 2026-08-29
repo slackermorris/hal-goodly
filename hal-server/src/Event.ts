@@ -39,18 +39,9 @@ export const Event = Schema.Union([MessageEvent])
 
 // ─── Crossings ───────────────────────────────────────────────────────
 
-/**
- * What a caller hands the log, as opposed to what the log stores: the domain
- * event minus the fields the log itself owns. `seq` is absent because SQLite
- * assigns it and `at` because the constructor default above fills it, and both
- * are derived from the schema rather than restated — so a field that gains or
- * loses a default cannot drift from the type callers are held to.
- */
-export type EventInput = Parameters<typeof Event.make>[0];
-
 /** Storage → Domain; forgiving. A malformed row is `Option.none`, one skipped entry. */
 export const decodeEvent = Schema.decodeUnknownOption(Event);
 
 /** Domain → Storage. Running the constructor is what stamps `at`. */
-export const encodeEvent = (input: EventInput) =>
+export const encodeEvent = (input: typeof Event.Type) =>
   Schema.encodeOption(Event)(MessageEvent.make(input));
