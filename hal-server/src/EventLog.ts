@@ -1,5 +1,5 @@
 import type * as Cloudflare from "alchemy/Cloudflare";
-import { Option, Schema } from "effect";
+import { Option, Schema, Struct } from "effect";
 import * as Effect from "effect/Effect";
 import { decodeEvent, encodeEvent, Event } from "./Event.ts";
 import * as TaggedErrors from "./tagged-errors";
@@ -45,10 +45,9 @@ const migration = `CREATE TABLE IF NOT EXISTS events (
      at            INTEGER NOT NULL
    )`;
 
-export const AppendResponseSchema = Schema.Struct({
-  seq: Schema.Number,
-  at: Schema.Number,
-});
+export const AppendResponseSchema = Schema.Struct(
+  Struct.pick(Event.members[0].fields, ["seq", "at"]),
+);
 
 export const ReadResponseSchema = Schema.Struct({
   events: Schema.Array(Schema.toType(Event)),
@@ -97,10 +96,10 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           );
         }
 
-        const cursor = yield* sql.exec<typeof AppendResponseSchema.Type>(
+        const cursor = yield* sql.exec<typeof AppendResponseSchema.Encoded>(
           `INSERT INTO events (kind, author, payload, at)
              VALUES (?, ?, ?, ?)
-             RETURNING seq, at`,
+             RETURNING *`,
           insert.value.kind,
           insert.value.author,
           insert.value.payload,
@@ -108,8 +107,18 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         );
 
         const row = yield* cursor.one();
+        const decoded = decodeEvent(row);
 
-        return row;
+        if (Option.isNone(decoded)) {
+          return yield* Effect.die(
+            new Error(`Written event of kind "${input.kind}" was undecodable.`),
+          );
+        }
+
+        return AppendResponseSchema.make({
+          seq: decoded.value.seq!,
+          at: decoded.value.at,
+        });
       });
 
     const read = (after: number, limit = DEFAULT_READ_LIMIT) =>

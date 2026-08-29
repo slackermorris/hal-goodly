@@ -90,7 +90,30 @@ describe("storage threshold", () => {
 });
 
 test(
-  "user can write to thread",
+  "user writing to thread gets expected response",
+  Effect.gen(function* () {
+    const author = "larry mcmurty";
+    const threadName = `thread-${crypto.randomUUID()}`;
+    const text = "user written message";
+
+    const { submit } = yield* HttpWorker;
+
+    const response = yield* submit({ threadName, text, author });
+
+    const body = yield* response.json;
+    expect(body).toEqual(
+      expect.objectContaining({
+        receipt: {
+          at: expect.any(String),
+          seq: 1,
+        },
+      }),
+    );
+  }),
+);
+
+test(
+  "user can write to thread and read back their message",
   Effect.gen(function* () {
     const author = "larry mcmurty";
     const threadName = thread.isolationB;

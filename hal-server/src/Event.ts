@@ -34,8 +34,8 @@ export const MessageEvent = Schema.Struct({
 }).annotate({ identifier: "Event.Message" });
 
 export const Event = Schema.Union([MessageEvent])
-  .pipe(Schema.toTaggedUnion("kind"))
-  .annotate({ identifier: "Event" });
+  .annotate({ identifier: "Event" })
+  .pipe(Schema.toTaggedUnion("kind"));
 
 // ─── Crossings ───────────────────────────────────────────────────────
 
