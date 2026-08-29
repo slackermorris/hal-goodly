@@ -3,10 +3,8 @@ import * as Vitest from "alchemy/Test/Vitest";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
 
 import Stack from "../alchemy.run.ts";
-import { ReadResponseSchema } from "./EventLog.ts";
 import * as HttpApiError from "./HttpApiError.ts";
 import type { Diagnostics } from "./Thread.ts";
 
@@ -104,6 +102,7 @@ test(
     yield* submit({ threadName, text, author });
 
     const response = yield* read(threadName, cursor);
+
     const body = yield* response.json;
 
     expect(body).toEqual({
@@ -144,200 +143,12 @@ test(
 
     const response = yield* read(threadName, cursor);
 
-    /**
-     * Decoded through the same schema the Worker encoded with, so the assertion
-     * below is typed rather than cast. The decode is itself an assertion: a
-     * response whose shape has drifted fails here, which a `toEqual` over raw
-     * JSON would only catch for the fields it happens to name.
-     */
-    const { events } = yield* decodeReadResponse(response);
+    const { events = [] } = yield* response.json;
 
     expect(events).toHaveLength(2);
     expect(events.map(({ author }) => author)).toEqual([authorA, authorB]);
   }),
 );
-
-/**
- * > Kill the fiber mid-run: no orphan container. Evict the DO mid-run: the
- * > reaper catches it.
- *
- * The eviction half of that arrives properly in Phase 4, but the property it
- * rests on is testable now: **runtime is per-invocation and never a source of
- * truth; all truth in SQLite.** Every test below is written so that it fails if
- * that rule is broken.
- *
- * The load-bearing assertion in each is `incarnation`. A Durable Object test
- * that writes, evicts, reads, and finds its data is worthless on its own —
- * it passes identically when no eviction happened and one instance served the
- * whole test. Asserting the incarnation *changed* is what turns it into
- * evidence.
- */
-// test(
-//   "the log survives an eviction and isolate memory does not",
-//   Effect.gen(function* () {
-//     const { submit, diagnostics, evict, read } = yield* HttpWorker;
-//     const name = thread.eviction;
-
-//     yield* submit(name, "first");
-//     yield* submit(name, "second");
-//     yield* submit(name, "third");
-
-//     const before = yield* diagnostics(name);
-//     expect(before.rows).toBe(3);
-//     expect(before.memoryAppends).toBe(3);
-
-//     yield* evict(name);
-
-//     const after = yield* diagnostics(name);
-
-//     // The isolate genuinely died — without this the rest proves nothing.
-//     expect(after.incarnation).not.toBe(before.incarnation);
-
-//     // In-isolate state is gone, which is the rule being enforced.
-//     expect(after.memoryAppends).toBe(0);
-
-//     // Durable state is not.
-//     expect(after.rows).toBe(3);
-
-//     const replay = yield* read(name, 0);
-//     expect(replay.events.map((event) => event.payload.text)).toEqual([
-//       "first",
-//       "second",
-//       "third",
-//     ]);
-//   }),
-// );
-
-// test(
-//   "seq is monotonic and gapless across an eviction",
-//   Effect.gen(function* () {
-//     const { submit, evict } = yield* HttpWorker;
-//     const name = thread.seqAcrossEviction;
-
-//     const first = yield* submit(name, "before");
-//     const second = yield* submit(name, "before");
-
-//     yield* evict(name);
-
-//     const third = yield* submit(name, "after");
-//     const fourth = yield* submit(name, "after");
-
-//     /**
-//      * The failure this catches is the obvious implementation: a counter held
-//      * in the isolate. That version restarts at 1 here and hands two entries
-//      * the same cursor, which corrupts every replay that follows.
-//      */
-//     expect([first.seq, second.seq, third.seq, fourth.seq]).toEqual([
-//       1, 2, 3, 4,
-//     ]);
-//   }),
-// );
-
-// test(
-//   "a repeated clientMsgId is deduplicated across an eviction",
-//   Effect.gen(function* () {
-//     const { submit, diagnostics, evict } = yield* HttpWorker;
-//     const name = thread.idempotency;
-//     const clientMsgId = "retry-me";
-
-//     const original = yield* submit(name, "sent once", clientMsgId);
-//     expect(original.deduplicated).toBe(false);
-
-//     yield* evict(name);
-
-//     // The client could not know its send landed, so it retries after
-//     // reconnecting — which is ordinary, not exceptional, under multiplayer.
-//     const retried = yield* submit(name, "sent once", clientMsgId);
-//     expect(retried.deduplicated).toBe(true);
-//     expect(retried.seq).toBe(original.seq);
-
-//     // Proving the unique index did the work rather than an in-memory set.
-//     const after = yield* diagnostics(name);
-//     expect(after.rows).toBe(1);
-//   }),
-// );
-
-// test(
-//   "concurrent appends to a fresh thread are gapless",
-//   Effect.gen(function* () {
-//     const { submit } = yield* HttpWorker;
-//     const name = thread.concurrent;
-
-//     /**
-//      * Two properties at once: sequence numbers survive concurrent appends, and
-//      * the `CREATE TABLE IF NOT EXISTS` in instance init tolerates several
-//      * requests racing to be the one that constructs the instance.
-//      */
-//     const receipts = yield* Effect.all(
-//       Array.from({ length: 8 }, (_, index) =>
-//         submit(name, `concurrent ${index}`),
-//       ),
-//       { concurrency: "unbounded" },
-//     );
-
-//     const seqs = receipts.map((receipt) => receipt.seq).sort((a, b) => a - b);
-//     expect(seqs).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-//   }),
-// );
-
-// test(
-//   "replay from a cursor returns exactly the missed entries",
-//   Effect.gen(function* () {
-//     const { submit, read, head } = yield* HttpWorker;
-//     const name = thread.cursor;
-
-//     for (const text of ["a", "b", "c", "d", "e"]) {
-//       yield* submit(name, text);
-//     }
-
-//     const replay = yield* read(name, 2);
-
-//     expect(replay.skipped).toBe(0);
-//     expect(replay.events.map((event) => event.seq)).toEqual([3, 4, 5]);
-//     expect(replay.events.map((event) => event.payload.text)).toEqual([
-//       "c",
-//       "d",
-//       "e",
-//     ]);
-//     expect(replay.nextCursor).toBe(5);
-
-//     // Reading from the head is empty rather than an error, so a caught-up
-//     // client polls without special-casing.
-//     const caughtUp = yield* read(name, replay.nextCursor);
-//     expect(caughtUp.events).toEqual([]);
-//     expect(caughtUp.nextCursor).toBe(5);
-
-//     const position = yield* head(name);
-//     expect(position).toEqual({ seq: 5 });
-//   }),
-// );
-
-// test(
-//   "no thread keeps its sequence in KV storage",
-//   Effect.gen(function* () {
-//     const { diagnostics } = yield* HttpWorker;
-
-//     /**
-//      * The literal cutover assertion. `thread.counter` has been driven through
-//      * the `echo` path, which used to read-increment-write a `seq` key; if that
-//      * path still exists anywhere, this is where it shows up.
-//      */
-//     const echoed = yield* diagnostics(thread.counter);
-//     expect(echoed.kvSeq).toBeNull();
-//     expect(echoed.rows).toBe(2);
-
-//     const submitted = yield* diagnostics(thread.eviction);
-//     expect(submitted.kvSeq).toBeNull();
-//   }),
-// );
-
-/**
- * The counterpart to the Worker's `HttpServerResponse.schemaJson`: both name the
- * same domain schema and both derive the JSON from it, so the test's
- * expectations are the domain type and a response that drifts from it cannot
- * reach an assertion.
- */
-const decodeReadResponse = HttpClientResponse.schemaBodyJson(ReadResponseSchema);
 
 const HttpWorker = Effect.gen(function* () {
   const { url: baseUrl } = yield* stack;

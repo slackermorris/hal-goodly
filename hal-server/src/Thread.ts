@@ -105,7 +105,6 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
               ),
             ),
 
- 
         read: (after: number, limit?: number) =>
           Effect.annotateLogs(log.read(after, limit), { threadId }),
 

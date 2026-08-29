@@ -117,16 +117,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
                 limit === null ? undefined : Number(limit),
               );
 
-              /**
-               * `schemaJson` rather than `json`: the log hands back a *domain*
-               * value (`at` is a `Date`, the payload a parsed object), and a
-               * bare stringify would publish whatever `JSON.stringify` happens
-               * to do with it as the API's contract. `schemaJson` derives the
-               * JSON encoding from the schema instead, so the wire shape is a
-               * consequence of the domain model and an unrepresentable value
-               * fails the encode rather than being silently mangled.
-               */
-              return yield* readResponse(result);
+              return yield* HttpServerResponse.json(result);
             }
 
             case "diagnostics":
@@ -173,8 +164,6 @@ const SubmitMessagePayload = Schema.Struct({
 });
 
 // ─── Responses ───────────────────────────────────────────────────────
-
-const readResponse = HttpServerResponse.schemaJson(ReadResponseSchema);
 
 const ACTIONS = ["submit", "read", "diagnostics", "evict"] as const;
 

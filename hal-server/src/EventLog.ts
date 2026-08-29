@@ -8,17 +8,14 @@ import * as TaggedErrors from "./tagged-errors";
  * The append-only, ordered event log — the spine of the whole system.
  *
  * This module owns the `events` table and nothing else owns any part of it.
- * That exclusivity is the point rather than a tidiness preference: streaming,
+ * That exclusivity is the point: streaming,
  * multiplayer, replay and effort accounting are all projections of this one
  * log, and they only stay consistent with each other while there is exactly
  * one writer.
  *
  * Deliberately ignorant of its host. It knows nothing about Durable Objects,
  * sockets, participants, models or tasks — a `Thread` holds one of these, and
- * the log could not tell you so. Naming it after its owner (`SessionLog`, as
- * it was) was the thing that kept the two concepts blurred; the Cloudflare
- * Agents SDK names its equivalents for the mechanism too — `resumable-stream`,
- * `turn-queue`, `orphan-store` — never for the object that holds them.
+ * the log could not tell you so.
  *
  * What an event *is* lives in `Event.ts`; this module only moves events in
  * and out of the table.
@@ -34,14 +31,6 @@ const ROW_MAX_BYTES = 1_800_000;
 
 /**
  * The log's schema. Two deliberate choices.
- *
- * `AUTOINCREMENT` rather than a bare `INTEGER PRIMARY KEY`. A plain rowid is
- * *reused* once the rows above it are deleted, which would let a cursor handed
- * to a client be matched by a completely different entry later — a silent
- * replay corruption nothing would catch until it mattered. Nothing deletes
- * from this table today, so the guarantee is currently free insurance; it stays
- * because the first deletion path to arrive (retention, compaction in Phase 3,
- * a manual repair) would otherwise reintroduce the hazard quietly.
  *
  * The payload column stays plain JSON text and the only index is the one the
  * log actually queries by. Replay reads by `seq` (the primary key). Nothing
@@ -61,43 +50,14 @@ export const AppendResponseSchema = Schema.Struct({
   at: Schema.Number,
 });
 
-/**
- * One shape, because a cursor cannot currently fall out of the log — nothing
- * deletes, so every cursor ever issued is still replayable.
- *
- * This is where compaction used to show up, as a second `Truncated` variant
- * carrying a `floor`. It is gone on purpose. Compaction is a *context window*
- * mechanism, not a storage one — the Agents SDK proves the point by triggering
- * it on a token threshold and writing summaries to a table separate from the
- * messages they summarise — so it belongs to the phase that first has a
- * context window to manage, not to the log's first draft. When it returns, the
- * variant returns with it.
- *
- * `skipped` is how "forgiving on read" becomes assertable — one corrupt row
- * must cost exactly one entry, and that is only provable if the count is part
- * of the result rather than only a log line.
- */
-/**
- * Built on {@link EventDomain} rather than on the row codec, which makes this
- * one schema serve both jobs: `read` constructs its result with it, and the
- * Worker's response and any client both name it and let the HTTP layer derive
- * the JSON. Were it row-encoded instead, that derivation would pass the storage
- * encoding through and ship `at` as millis and `payload` as JSON text.
- */
 export const ReadResponseSchema = Schema.Struct({
-  events: Schema.Array(Event),
+  events: Schema.Array(Schema.toType(Event)),
   nextCursor: Schema.Number,
   skipped: Schema.Number,
 });
 
 const DEFAULT_READ_LIMIT = 256;
 
-/**
- * Bind the log to a SQLite handle and run its migrations.
- *
- * Takes the storage rather than the Durable Object state, so the log has no
- * way to reach an alarm, a socket, or the object's identity even by accident.
- */
 export const make = (sql: Cloudflare.Workers.SqlStorage) =>
   Effect.gen(function* () {
     const query = <
@@ -112,7 +72,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
 
     yield* sql.exec(migration);
 
-    const append = (input: typeof Event.Type) =>
+    const append = (input: EventInput) =>
       Effect.gen(function* () {
         /**
          * The whole row, not just the payload column. `seq` is omitted and `at`
@@ -181,8 +141,6 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           }
           events.push(decoded.value);
         }
-
-        console.log("logging out the events", { events });
 
         // TODO: fix this logic
         const nextCursor = rows[rows.length - 1]?.seq ?? after;
