@@ -1,5 +1,6 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import { Result, Schema } from "effect";
@@ -120,14 +121,27 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
             }
 
             /**
-             * `abort` destroys the instance serving this very request, so the
-             * response is never delivered — the caller sees a transport error
-             * instead of a status code. That is the intended behaviour and the
-             * test treats a failed request here as success.
+             * Forced eviction, and the only route here that is not part of the
+             * product.
+             *
+             * `state.abort()` destroys the instance that is serving this very
+             * RPC, so the call cannot return — the rejection *is* the
+             * confirmation. A clean return would mean the abort never took,
+             * and every "survives eviction" assertion downstream of it would
+             * then be vacuous. So the two outcomes are reported apart, rather
+             * than collapsed into the 500 that an unhandled rejection would
+             * otherwise produce.
+             *
+             * The Worker is a different isolate and is untouched by the abort,
+             * which is why it is still here to answer.
              */
             case "evict": {
-              yield* thread.evict();
-              return HttpServerResponse.text("evicted");
+              const outcome = yield* Effect.exit(thread.evict());
+              return yield* HttpServerResponse.json(
+                EvictionOutcomeSchema.make({
+                  aborted: Exit.isFailure(outcome),
+                }),
+              );
             }
           }
         }
@@ -145,21 +159,16 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
   }),
 ) {}
 
-// ─── Payload schemas ─────────────────────────────────────────────────
-
-/**
- * The submit request body, declared rather than derived from the event: what a
- * client is allowed to send is its own contract, and it is already smaller than
- * the event it produces — `seq`, `at` and `kind` are all the server's to decide.
- */
 const SubmitMessagePayload = Schema.Struct({
   text: Schema.String,
   author: Schema.optional(Schema.String),
 });
 
-// ─── Responses ───────────────────────────────────────────────────────
+export const EvictionOutcomeSchema = Schema.Struct({
+  aborted: Schema.Boolean,
+});
 
-const ACTIONS = ["submit", "read", "diagnostics", "evict"] as const;
+const ACTIONS = ["submit", "read", "evict"] as const;
 
 type ThreadRoute = {
   readonly threadId: string;
