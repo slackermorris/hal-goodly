@@ -1,0 +1,1790 @@
+# lalph
+
+## 0.3.139
+
+### Patch Changes
+
+- [`0855017`](https://github.com/tim-smart/lalph/commit/08550174cfd362946326b8ac59eea32e9f80e497) Thanks [@tim-smart](https://github.com/tim-smart)! - prevent orphaned auto-merge tasks
+
+## 0.3.138
+
+### Patch Changes
+
+- [`e61593e`](https://github.com/tim-smart/lalph/commit/e61593e058b7a621de069bb931fa41d83e4425eb) Thanks [@tim-smart](https://github.com/tim-smart)! - Prevent Claude CLI runs from swallowing Ctrl-C by avoiding inherited stdin and terminating Claude with SIGINT, escalating to SIGKILL if needed.
+
+  Inject GitHub PR feedback in commit mode when the configured target branch has an open PR.
+
+## 0.3.137
+
+### Patch Changes
+
+- [`7618203`](https://github.com/tim-smart/lalph/commit/76182038b0f49298bd651c1fb5ab551589551ae0) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.136
+
+### Patch Changes
+
+- [`f8e584b`](https://github.com/tim-smart/lalph/commit/f8e584b765ed0b714435781865d34b7f25826304) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+- [`4f233f3`](https://github.com/tim-smart/lalph/commit/4f233f30a7288f59e3fe4443015e8f3b7f1dec04) Thanks [@tim-smart](https://github.com/tim-smart)! - improve project defaults
+
+## 0.3.135
+
+### Patch Changes
+
+- [`2f7cfac`](https://github.com/tim-smart/lalph/commit/2f7cfac1f6ec9064c202dbfc5e0d398ef4cc36b2) Thanks [@tim-smart](https://github.com/tim-smart)! - Add per-project Ralph agent preset selection and use the selected preset when running Ralph mode.
+
+## 0.3.134
+
+### Patch Changes
+
+- [`3d9711d`](https://github.com/tim-smart/lalph/commit/3d9711dd86f9afd0e70ed73c32830d719332aaaf) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.133
+
+### Patch Changes
+
+- [`68f34e6`](https://github.com/tim-smart/lalph/commit/68f34e68dcd1d4f9acaef69c198c55f2c9795486) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.132
+
+### Patch Changes
+
+- [`fb935d4`](https://github.com/tim-smart/lalph/commit/fb935d433039458d7bc7bfba170d638ebb1d2e1c) Thanks [@tim-smart](https://github.com/tim-smart)! - disallow open questions
+
+## 0.3.131
+
+### Patch Changes
+
+- [`08fee6d`](https://github.com/tim-smart/lalph/commit/08fee6dc032fe61552fc747e558b1264d4b5b703) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.130
+
+### Patch Changes
+
+- [`e215864`](https://github.com/tim-smart/lalph/commit/e2158646fa128cbf80be63a41aa7e6fc747fc8e3) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.129
+
+### Patch Changes
+
+- [`f492247`](https://github.com/tim-smart/lalph/commit/f4922474babfcb5ed3e813c46527113a7de141a8) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.128
+
+### Patch Changes
+
+- [`4ca6578`](https://github.com/tim-smart/lalph/commit/4ca65780a3309d11edc2f2e2ddfe3351fa48a02f) Thanks [@tim-smart](https://github.com/tim-smart)! - fix gh schemas
+
+## 0.3.127
+
+### Patch Changes
+
+- [`ab20cbf`](https://github.com/tim-smart/lalph/commit/ab20cbf526c4c5086e8903c68795f693b6a2a7dc) Thanks [@tim-smart](https://github.com/tim-smart)! - fix parseBranch
+
+## 0.3.126
+
+### Patch Changes
+
+- [`363df2d`](https://github.com/tim-smart/lalph/commit/363df2d99281f4a15f8a4448316129a0f63a23bb) Thanks [@tim-smart](https://github.com/tim-smart)! - fix branch parsing
+
+## 0.3.125
+
+### Patch Changes
+
+- [`2ae685e`](https://github.com/tim-smart/lalph/commit/2ae685efd2a71f254469d970648a83e4fdff900f) Thanks [@tim-smart](https://github.com/tim-smart)! - clarify plan interview process
+
+## 0.3.124
+
+### Patch Changes
+
+- [`6970348`](https://github.com/tim-smart/lalph/commit/69703487ddad648b35c5ae0fdd12e22097169715) Thanks [@tim-smart](https://github.com/tim-smart)! - only present path instead of full text in plan mode
+
+## 0.3.123
+
+### Patch Changes
+
+- [`3ae8db3`](https://github.com/tim-smart/lalph/commit/3ae8db3844fdf42ca13fac599bc4fc55002cafcb) Thanks [@tim-smart](https://github.com/tim-smart)! - Update dependencies.
+
+- [#448](https://github.com/tim-smart/lalph/pull/448) [`bddea0f`](https://github.com/tim-smart/lalph/commit/bddea0f3ed3f214d1658ae90ae42e6d6118bf5b6) Thanks [@alvarosevilla95](https://github.com/alvarosevilla95)! - Store Ralph spec file selections relative to the current project root.
+
+- [#449](https://github.com/tim-smart/lalph/pull/449) [`07a0594`](https://github.com/tim-smart/lalph/commit/07a0594f342aa2af8d4b0327f33a41a68dafa8c6) Thanks [@alvarosevilla95](https://github.com/alvarosevilla95)! - fix: use colored output in codex
+
+## 0.3.122
+
+### Patch Changes
+
+- [`a6af188`](https://github.com/tim-smart/lalph/commit/a6af1881f88c0a69259ab8b2ece43a8320a2fcd6) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.121
+
+### Patch Changes
+
+- [`52d3bde`](https://github.com/tim-smart/lalph/commit/52d3bde6a23e21fad0e76245b2f5ae3624eee572) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.120
+
+### Patch Changes
+
+- [`642dd53`](https://github.com/tim-smart/lalph/commit/642dd53c2335e195b8cdf05eccfd21c5deb94f3c) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.119
+
+### Patch Changes
+
+- [`719ce4f`](https://github.com/tim-smart/lalph/commit/719ce4fad9fe4948c34a5f06f8b54a3859baef4f) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.118
+
+### Patch Changes
+
+- [`3638e92`](https://github.com/tim-smart/lalph/commit/3638e92bd821155d12fd40bc03974b885db0b861) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.117
+
+### Patch Changes
+
+- [`4f2848d`](https://github.com/tim-smart/lalph/commit/4f2848d97c40797abd1aa3fa3d47ebe8d41c9707) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.116
+
+### Patch Changes
+
+- [`0770bfd`](https://github.com/tim-smart/lalph/commit/0770bfdde1fa5724e63004ca1c1db110737a6edc) Thanks [@tim-smart](https://github.com/tim-smart)! - use clanka TurnTimeout
+
+## 0.3.115
+
+### Patch Changes
+
+- [`b299c57`](https://github.com/tim-smart/lalph/commit/b299c575f4f52de09fe6bdc1b28e5aa32f15f35f) Thanks [@tim-smart](https://github.com/tim-smart)! - add back stall timeout for clanka
+
+## 0.3.114
+
+### Patch Changes
+
+- [`af754ff`](https://github.com/tim-smart/lalph/commit/af754ff072f32fd7ab11811787a252caf769d40f) Thanks [@tim-smart](https://github.com/tim-smart)! - retry issue refresh
+
+## 0.3.113
+
+### Patch Changes
+
+- [`ee4e165`](https://github.com/tim-smart/lalph/commit/ee4e1654a72a7c8fd085fd99d0967bac9486c9a9) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.112
+
+### Patch Changes
+
+- [`7510079`](https://github.com/tim-smart/lalph/commit/7510079a6ddc4177df3d7bfd8d8b259f1af2de8c) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.111
+
+### Patch Changes
+
+- [`77361b8`](https://github.com/tim-smart/lalph/commit/77361b821dd5a04ffe63b713094550314c81778f) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.110
+
+### Patch Changes
+
+- [`4045dbf`](https://github.com/tim-smart/lalph/commit/4045dbfcbc49f313217f5b44bb175201d6cae00c) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.109
+
+### Patch Changes
+
+- [`3d6c5b4`](https://github.com/tim-smart/lalph/commit/3d6c5b441db8e7e5167fc64135701062a0f85060) Thanks [@tim-smart](https://github.com/tim-smart)! - remove findById from Prd service
+
+## 0.3.108
+
+### Patch Changes
+
+- [`acf4c9d`](https://github.com/tim-smart/lalph/commit/acf4c9de5a99038b482a811d59d51885ba8701be) Thanks [@tim-smart](https://github.com/tim-smart)! - fix updates cause clanka steer messages
+
+## 0.3.107
+
+### Patch Changes
+
+- [`aeaff3a`](https://github.com/tim-smart/lalph/commit/aeaff3a6dc7478d866cefd78f0b7f6ead87daf6f) Thanks [@tim-smart](https://github.com/tim-smart)! - custom review instructions override prompt completely
+
+## 0.3.106
+
+### Patch Changes
+
+- [#425](https://github.com/tim-smart/lalph/pull/425) [`77e3392`](https://github.com/tim-smart/lalph/commit/77e3392ee920d27ac3d21bbfc26a1ada00249acd) Thanks [@tim-smart](https://github.com/tim-smart)! - Update `IssueSource.make` to mutate cached issue state via `SubscriptionRef.update` after create / update / cancel operations instead of immediately re-fetching issues from the backing API.
+
+## 0.3.105
+
+### Patch Changes
+
+- [#421](https://github.com/tim-smart/lalph/pull/421) [`b764397`](https://github.com/tim-smart/lalph/commit/b764397d82666add07163be66f1aac0896b6eedc) Thanks [@alvarosevilla95](https://github.com/alvarosevilla95)! - Support personal access token for GitHub authentication.
+
+- [#422](https://github.com/tim-smart/lalph/pull/422) [`7d7c295`](https://github.com/tim-smart/lalph/commit/7d7c295fc59c02c6ee912dd1cbec4adebf0dbf17) Thanks [@alvarosevilla95](https://github.com/alvarosevilla95)! - Accept GitHub pull request review decision enum values when decoding PR data.
+
+- [#424](https://github.com/tim-smart/lalph/pull/424) [`d163f47`](https://github.com/tim-smart/lalph/commit/d163f47340d28c7feec4b431b07b56029f817a33) Thanks [@tim-smart](https://github.com/tim-smart)! - Only update .lalph/prd.yml from issue-source changes marked as external, preventing internal refreshes from overwriting local edits.
+
+## 0.3.104
+
+### Patch Changes
+
+- [`406e4f3`](https://github.com/tim-smart/lalph/commit/406e4f34366d1416bdc5270158ef32cb420a048e) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.103
+
+### Patch Changes
+
+- [`bcb1978`](https://github.com/tim-smart/lalph/commit/bcb1978334f365e21267a9c7a44d39cb99dcd1e5) Thanks [@tim-smart](https://github.com/tim-smart)! - use sub ref for issues.findById
+
+## 0.3.102
+
+### Patch Changes
+
+- [`5525427`](https://github.com/tim-smart/lalph/commit/5525427d4e8135d1b05e914b4d6b1ac590a40245) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.101
+
+### Patch Changes
+
+- [`3f2e113`](https://github.com/tim-smart/lalph/commit/3f2e113a19b361f5ed49f6ad6a95e89fe0793cca) Thanks [@tim-smart](https://github.com/tim-smart)! - update the clanka
+
+## 0.3.100
+
+### Patch Changes
+
+- [`e847877`](https://github.com/tim-smart/lalph/commit/e8478779bcfd3cda2e84a841e204b6eb1362007a) Thanks [@tim-smart](https://github.com/tim-smart)! - ignore errors in scheduled refresh
+
+## 0.3.99
+
+### Patch Changes
+
+- [`f56290a`](https://github.com/tim-smart/lalph/commit/f56290a4c60d7ad6889e4a617709791b67ce0cf6) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+- [`14e4f36`](https://github.com/tim-smart/lalph/commit/14e4f3601cb1d123f88d03ccf2ce7722ee7804a0) Thanks [@tim-smart](https://github.com/tim-smart)! - use clanka for plan mode
+
+## 0.3.98
+
+### Patch Changes
+
+- [`dbe74c6`](https://github.com/tim-smart/lalph/commit/dbe74c68dab2e3cc52a340ec401331f5f11f79c9) Thanks [@tim-smart](https://github.com/tim-smart)! - improve task polling latency
+
+## 0.3.97
+
+### Patch Changes
+
+- [`53fe420`](https://github.com/tim-smart/lalph/commit/53fe42058c6d20d290da6789911b84394ebbf665) Thanks [@tim-smart](https://github.com/tim-smart)! - improve current issue state
+
+## 0.3.96
+
+### Patch Changes
+
+- [`2c4ef5d`](https://github.com/tim-smart/lalph/commit/2c4ef5dfa1e9c5e7aaccb0de40315c24bde0ed24) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.95
+
+### Patch Changes
+
+- [`8fea89e`](https://github.com/tim-smart/lalph/commit/8fea89e2d759743b6116b6cf3e9b4a786e7c3334) Thanks [@tim-smart](https://github.com/tim-smart)! - fix ralphDone flag
+
+## 0.3.94
+
+### Patch Changes
+
+- [`5fa983d`](https://github.com/tim-smart/lalph/commit/5fa983da649e92568f2dff52c6cc8665e9327bb8) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.93
+
+### Patch Changes
+
+- [`ce85c24`](https://github.com/tim-smart/lalph/commit/ce85c24be087000e5127286d81ace770d06444e1) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+- [#398](https://github.com/tim-smart/lalph/pull/398) [`597319f`](https://github.com/tim-smart/lalph/commit/597319f1a3b7cd3780ea1fc32d6c916f23183915) Thanks [@tim-smart](https://github.com/tim-smart)! - Add IssueSource.findById and expose it through a new task tool, `findTaskById`.
+
+## 0.3.92
+
+### Patch Changes
+
+- [`cd8f873`](https://github.com/tim-smart/lalph/commit/cd8f8735ecd1917874e60ff3314d842e67f2c29b) Thanks [@tim-smart](https://github.com/tim-smart)! - prevent memoization of websocket models
+
+## 0.3.91
+
+### Patch Changes
+
+- [`d1287f4`](https://github.com/tim-smart/lalph/commit/d1287f407e7ae664f8d12f0ad7dc02770bab7ad2) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.90
+
+### Patch Changes
+
+- [#392](https://github.com/tim-smart/lalph/pull/392) [`adfdcf0`](https://github.com/tim-smart/lalph/commit/adfdcf0bce2202e413849ce7b057f59440029a86) Thanks [@tim-smart](https://github.com/tim-smart)! - Refactor Ralph branching in `src/commands/root.ts` by extracting named helpers for git-flow layer selection, run-effect selection, iteration waiting, and mode-specific no-work handling. Add an early actionable failure when a Ralph project is missing `ralphSpec` so Ralph worker startup is blocked for misconfigured projects.
+
+- [`c92ef3a`](https://github.com/tim-smart/lalph/commit/c92ef3af67d95fa3d2fd2f795753d5ef96eb6da2) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.89
+
+### Patch Changes
+
+- [`f2a1127`](https://github.com/tim-smart/lalph/commit/f2a11271d1f224e3a2fd4de5d354ca00febbe0f6) Thanks [@tim-smart](https://github.com/tim-smart)! - add max context config for clanka
+
+## 0.3.88
+
+### Patch Changes
+
+- [`664d502`](https://github.com/tim-smart/lalph/commit/664d502ee35d8a878a1af70607c53c8a2df5f856) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.87
+
+### Patch Changes
+
+- [`c8a7804`](https://github.com/tim-smart/lalph/commit/c8a78045c6c892886c0ec09c4fa321c9b19f2cfb) Thanks [@tim-smart](https://github.com/tim-smart)! - settings and prompt cleanup
+
+## 0.3.86
+
+### Patch Changes
+
+- [`24c5529`](https://github.com/tim-smart/lalph/commit/24c5529f7d3f9a2d4b031c5aa2372b4381580947) Thanks [@tim-smart](https://github.com/tim-smart)! - add ralph loop mode
+
+## 0.3.85
+
+### Patch Changes
+
+- [`16eff5b`](https://github.com/tim-smart/lalph/commit/16eff5b70452b4f2709e612d33656b92dd40117e) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.84
+
+### Patch Changes
+
+- [`8f1f5ac`](https://github.com/tim-smart/lalph/commit/8f1f5accdb85ba70a47b68eaf6db06a66aa3501d) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.83
+
+### Patch Changes
+
+- [`aa37d49`](https://github.com/tim-smart/lalph/commit/aa37d49104a70347bf340339d1b93ab28d60bb41) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.82
+
+### Patch Changes
+
+- [`a5ac161`](https://github.com/tim-smart/lalph/commit/a5ac1615add6045d4174fc4b7c040a9ee67a5ac8) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.81
+
+### Patch Changes
+
+- [`b1a9c4a`](https://github.com/tim-smart/lalph/commit/b1a9c4a565a38b360f3b518531ff9f43c9eff2d0) Thanks [@tim-smart](https://github.com/tim-smart)! - align tree-sitter versions
+
+## 0.3.80
+
+### Patch Changes
+
+- [`c585ef2`](https://github.com/tim-smart/lalph/commit/c585ef29e3dac73cd4d9afeccc6cd0cbea34b0ce) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.79
+
+### Patch Changes
+
+- [`94d0d9e`](https://github.com/tim-smart/lalph/commit/94d0d9e52683921a4ee21bd6c958dced9ea26163) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.78
+
+### Patch Changes
+
+- [`7d9c681`](https://github.com/tim-smart/lalph/commit/7d9c68139d0c4fda72bada5bf0e665d1db604859) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+- [`1a4a878`](https://github.com/tim-smart/lalph/commit/1a4a878c1c00ab7146072afa7cfa0bdd7cf420fe) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.77
+
+### Patch Changes
+
+- [`5385a39`](https://github.com/tim-smart/lalph/commit/5385a39e72f500c32f8e567c342701809f80ae9a) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.76
+
+### Patch Changes
+
+- [`758bdd2`](https://github.com/tim-smart/lalph/commit/758bdd2fc60093c2ac6917b843ced7c473bcdd7b) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.75
+
+### Patch Changes
+
+- [`3b9d4cf`](https://github.com/tim-smart/lalph/commit/3b9d4cfdf9c9e3d9b41c03b0e53c2f17591be163) Thanks [@tim-smart](https://github.com/tim-smart)! - build SemanticSearch earlier
+
+- [`e1e923a`](https://github.com/tim-smart/lalph/commit/e1e923a3f1bf3eb85ff9da99a41a286ff6aa81cf) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.74
+
+### Patch Changes
+
+- [`7d9db91`](https://github.com/tim-smart/lalph/commit/7d9db916826865629a94e05c96ad2e85f809d17b) Thanks [@tim-smart](https://github.com/tim-smart)! - update openai provider
+
+## 0.3.73
+
+### Patch Changes
+
+- [#376](https://github.com/tim-smart/lalph/pull/376) [`5818830`](https://github.com/tim-smart/lalph/commit/58188307e09d7e47e1abc2482bea18b75e885145) Thanks [@tim-smart](https://github.com/tim-smart)! - Copy .lalph/shared into new temporary worktrees instead of symlinking it, and sync the worktree copy back to the main .lalph/shared directory when the worktree is finalized.
+
+## 0.3.72
+
+### Patch Changes
+
+- [`2dad80f`](https://github.com/tim-smart/lalph/commit/2dad80f8d3bda9a35e2bf77988ce5ad466beb76e) Thanks [@tim-smart](https://github.com/tim-smart)! - only watch for prd changes
+
+## 0.3.71
+
+### Patch Changes
+
+- [#373](https://github.com/tim-smart/lalph/pull/373) [`a552a73`](https://github.com/tim-smart/lalph/commit/a552a73ce7e1cafd517ae334f7429772c5555170) Thanks [@tim-smart](https://github.com/tim-smart)! - move tasks to in-progress while the review agent is running, then return them to in-review once review finishes
+
+- [`586b9c8`](https://github.com/tim-smart/lalph/commit/586b9c869b9ea273fae8c102b8fc0007492b9c74) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+- [#374](https://github.com/tim-smart/lalph/pull/374) [`466b756`](https://github.com/tim-smart/lalph/commit/466b756aabe1c2197a127acab097c9afb478438e) Thanks [@tim-smart](https://github.com/tim-smart)! - add support for clanka semantic search tool
+
+- [`586b9c8`](https://github.com/tim-smart/lalph/commit/586b9c869b9ea273fae8c102b8fc0007492b9c74) Thanks [@tim-smart](https://github.com/tim-smart)! - add shared directory
+
+## 0.3.70
+
+### Patch Changes
+
+- [`61bbeb2`](https://github.com/tim-smart/lalph/commit/61bbeb24b528aa894f835dba068bdb977e7d7f25) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.69
+
+### Patch Changes
+
+- [`9c535dc`](https://github.com/tim-smart/lalph/commit/9c535dcfbd722147c94cbeb3f8a6777271870905) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.68
+
+### Patch Changes
+
+- [`89ddd35`](https://github.com/tim-smart/lalph/commit/89ddd35c70e1eb76c45e369f783afe38dc47cf80) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.67
+
+### Patch Changes
+
+- [`9233553`](https://github.com/tim-smart/lalph/commit/923355370609f5feb2908318b4dd6c174625ffa9) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.66
+
+### Patch Changes
+
+- [`9cc169e`](https://github.com/tim-smart/lalph/commit/9cc169e29dd39d40410a35e2f8580990998fecfa) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.65
+
+### Patch Changes
+
+- [`1957bd2`](https://github.com/tim-smart/lalph/commit/1957bd26f96367915f911534220375b59145eb40) Thanks [@tim-smart](https://github.com/tim-smart)! - add support for websocket mode
+
+## 0.3.64
+
+### Patch Changes
+
+- [`6e3ddd0`](https://github.com/tim-smart/lalph/commit/6e3ddd0fcc21ef3489cbd303f04c48d6f7b51fd3) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.63
+
+### Patch Changes
+
+- [`33fcb72`](https://github.com/tim-smart/lalph/commit/33fcb72c17b7c2082afa923242c2417bba54f9a6) Thanks [@tim-smart](https://github.com/tim-smart)! - tweak research prompt
+
+## 0.3.62
+
+### Patch Changes
+
+- [`08e090e`](https://github.com/tim-smart/lalph/commit/08e090e2081d7f39df55a6e089e999086d0b740f) Thanks [@tim-smart](https://github.com/tim-smart)! - add optional research agent
+
+## 0.3.61
+
+### Patch Changes
+
+- [`4e4b99f`](https://github.com/tim-smart/lalph/commit/4e4b99ff7d1541fa5bcecfb5a17b6d9c867dd49d) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.60
+
+### Patch Changes
+
+- [#356](https://github.com/tim-smart/lalph/pull/356) [`450ded0`](https://github.com/tim-smart/lalph/commit/450ded07a7727b5cc4b1dcb81a11634fdd1024fb) Thanks [@tim-smart](https://github.com/tim-smart)! - Fix task-run cancellation races by verifying task state against the issue source before cancelling a worker.
+
+- [`311f190`](https://github.com/tim-smart/lalph/commit/311f190fe5f90a3c259d7bf65de8dd6442dab6f7) Thanks [@tim-smart](https://github.com/tim-smart)! - debounce task state watching
+
+## 0.3.59
+
+### Patch Changes
+
+- [`773346b`](https://github.com/tim-smart/lalph/commit/773346b6eefdefd4d234d82bc51e826a21baba23) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.58
+
+### Patch Changes
+
+- [`39dc08f`](https://github.com/tim-smart/lalph/commit/39dc08ffee3541c656738c2ff7b43301aa728972) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.57
+
+### Patch Changes
+
+- [`5ea5196`](https://github.com/tim-smart/lalph/commit/5ea5196cf735886abd4239b383274f16273fcddd) Thanks [@tim-smart](https://github.com/tim-smart)! - update dependencies
+
+## 0.3.56
+
+### Patch Changes
+
+- [`424ca7d`](https://github.com/tim-smart/lalph/commit/424ca7dbb8998b5c0006b0e82e2f4ca1081ae0ed) Thanks [@tim-smart](https://github.com/tim-smart)! - create task branch before starting worker
+
+## 0.3.55
+
+### Patch Changes
+
+- [`b4544e1`](https://github.com/tim-smart/lalph/commit/b4544e19ba0605fe960a1c4f4b36cc8d232759e1) Thanks [@tim-smart](https://github.com/tim-smart)! - increase subagent reasoning
+
+## 0.3.54
+
+### Patch Changes
+
+- [`818f5ac`](https://github.com/tim-smart/lalph/commit/818f5ac1af1d91f353d3d30c2870a006877fb0ed) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+- [`03ce11e`](https://github.com/tim-smart/lalph/commit/03ce11ec74feff13244771fc8dd40113d4ec2ff3) Thanks [@tim-smart](https://github.com/tim-smart)! - improve pr instructions
+
+## 0.3.53
+
+### Patch Changes
+
+- [`1569dd3`](https://github.com/tim-smart/lalph/commit/1569dd3101ced789bf61ff52d8c333550b2da2fa) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+- [`c4e5f1a`](https://github.com/tim-smart/lalph/commit/c4e5f1aa5f5d40bf3029c8736f7e0887d3a34d2a) Thanks [@tim-smart](https://github.com/tim-smart)! - require clanka model auth during preset setup
+
+## 0.3.52
+
+### Patch Changes
+
+- [`2f8e8f7`](https://github.com/tim-smart/lalph/commit/2f8e8f7db962e0049305e30d96948cd9f661998d) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.51
+
+### Patch Changes
+
+- [`85ad9f7`](https://github.com/tim-smart/lalph/commit/85ad9f7ee71f02c1a34c1f927c5fa2658b6fd02d) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.50
+
+### Patch Changes
+
+- [`b4abcf5`](https://github.com/tim-smart/lalph/commit/b4abcf521cd13ef0bbcab2d0ac41b2f770a108ea) Thanks [@tim-smart](https://github.com/tim-smart)! - show setup output
+
+## 0.3.49
+
+### Patch Changes
+
+- [`42c39a8`](https://github.com/tim-smart/lalph/commit/42c39a81a0d236c49b6c68d8e9abe164f9099d6b) Thanks [@tim-smart](https://github.com/tim-smart)! - update deps
+
+## 0.3.48
+
+### Patch Changes
+
+- [#339](https://github.com/tim-smart/lalph/pull/339) [`8056dc3`](https://github.com/tim-smart/lalph/commit/8056dc3d2b451baf1f07d28d393fd4cbe5bcfb89) Thanks [@tim-smart](https://github.com/tim-smart)! - Return eligible tasks in priority order.
+
+## 0.3.47
+
+### Patch Changes
+
+- [#336](https://github.com/tim-smart/lalph/pull/336) [`49d40ab`](https://github.com/tim-smart/lalph/commit/49d40ab7e46d4eca1d7633faf8fbdd79af9fa9aa) Thanks [@tim-smart](https://github.com/tim-smart)! - remove task estimates from clanka
+
+- [`f3d2e51`](https://github.com/tim-smart/lalph/commit/f3d2e51123ae5e95a6599d98dff279c163ca07e1) Thanks [@tim-smart](https://github.com/tim-smart)! - save issue / plan on failure
+
+- [#336](https://github.com/tim-smart/lalph/pull/336) [`49d40ab`](https://github.com/tim-smart/lalph/commit/49d40ab7e46d4eca1d7633faf8fbdd79af9fa9aa) Thanks [@tim-smart](https://github.com/tim-smart)! - Allow clanka runs to accept an optional steer stream and forward live task updates to the running agent.
+
+## 0.3.46
+
+### Patch Changes
+
+- [`594d75a`](https://github.com/tim-smart/lalph/commit/594d75a14e9f6f40870de3a0a4f597d9c76f26fa) Thanks [@tim-smart](https://github.com/tim-smart)! - fix clanka worker prompt
+
+- [`ef4b9c0`](https://github.com/tim-smart/lalph/commit/ef4b9c0f4e4044203caf0143dd437ece6e50e574) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.45
+
+### Patch Changes
+
+- [`78b7967`](https://github.com/tim-smart/lalph/commit/78b79674e56ed72301f6cf308fb01c39a9564a64) Thanks [@tim-smart](https://github.com/tim-smart)! - move clanka running into agent helpers
+
+## 0.3.44
+
+### Patch Changes
+
+- [`bd6222c`](https://github.com/tim-smart/lalph/commit/bd6222cb5e7cbdc2f962ac2db9b656291d79596d) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.43
+
+### Patch Changes
+
+- [`e38fd09`](https://github.com/tim-smart/lalph/commit/e38fd09417211df5e81c8ec613e4b003f91805da) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.42
+
+### Patch Changes
+
+- [#326](https://github.com/tim-smart/lalph/pull/326) [`d78521a`](https://github.com/tim-smart/lalph/commit/d78521a4c6dcbffd951bc160088a815eefe0f2d7) Thanks [@tim-smart](https://github.com/tim-smart)! - Update `clanka` to the latest published version.
+
+## 0.3.41
+
+### Patch Changes
+
+- [`bca8228`](https://github.com/tim-smart/lalph/commit/bca82287383109801f4a02cc5c7d80e85bfc3e42) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+## 0.3.40
+
+### Patch Changes
+
+- [`b705f00`](https://github.com/tim-smart/lalph/commit/b705f002c6002d2d7e751021ce2ed3df1eee7f79) Thanks [@tim-smart](https://github.com/tim-smart)! - update clanka
+
+- [#323](https://github.com/tim-smart/lalph/pull/323) [`5970ca9`](https://github.com/tim-smart/lalph/commit/5970ca9308859689cfb754eb8718aef37b506078) Thanks [@tim-smart](https://github.com/tim-smart)! - Show each agent preset's clanka model in `lalph agents ls` output and refresh related CLI/help text.
+
+## 0.3.39
+
+### Patch Changes
+
+- [`7dffd82`](https://github.com/tim-smart/lalph/commit/7dffd8273e98b38ece5bb2070ef0e19f111cefbc) Thanks [@tim-smart](https://github.com/tim-smart)! - remove chooseTask from workers
+
+## 0.3.38
+
+### Patch Changes
+
+- [#320](https://github.com/tim-smart/lalph/pull/320) [`fd1feef`](https://github.com/tim-smart/lalph/commit/fd1feef4e6f44feae32a69f02980a2809913ec38) Thanks [@tim-smart](https://github.com/tim-smart)! - add poc clanka integration
+
+## 0.3.37
+
+### Patch Changes
+
+- [#316](https://github.com/tim-smart/lalph/pull/316) [`c4eaf0b`](https://github.com/tim-smart/lalph/commit/c4eaf0b57d3e481257f55240a656d75d4a83fc03) Thanks [@tim-smart](https://github.com/tim-smart)! - Ensure GitHub label filters still apply when syncing issues through a selected project.
+
+- [#317](https://github.com/tim-smart/lalph/pull/317) [`4e0ff40`](https://github.com/tim-smart/lalph/commit/4e0ff40e3dffec0694235128272183303b6fb58b) Thanks [@tim-smart](https://github.com/tim-smart)! - Ignore non-issue GitHub project items when syncing issues from a selected project.
+
+## 0.3.36
+
+### Patch Changes
+
+- [#313](https://github.com/tim-smart/lalph/pull/313) [`080e1d0`](https://github.com/tim-smart/lalph/commit/080e1d0d6caa36b74ea8869bfb347997a2734fa9) Thanks [@tim-smart](https://github.com/tim-smart)! - Add an optional GitHub project filter to project setup and issue syncing.
+
+## 0.3.35
+
+### Patch Changes
+
+- [#309](https://github.com/tim-smart/lalph/pull/309) [`645c563`](https://github.com/tim-smart/lalph/commit/645c56373481711e3fae568355e8479076d85186) Thanks [@tim-smart](https://github.com/tim-smart)! - Prompt for the plan-mode agent preset before creating or accessing the worktree.
+
+## 0.3.34
+
+### Patch Changes
+
+- [#306](https://github.com/tim-smart/lalph/pull/306) [`da198db`](https://github.com/tim-smart/lalph/commit/da198db10821b8da31bb36665a6dba9d74d513da) Thanks [@tim-smart](https://github.com/tim-smart)! - Prompt to choose an agent preset when running plan flows so `lalph plan` and
+  `lalph plan tasks` can use any configured preset instead of always using the
+  default.
+
+- [#305](https://github.com/tim-smart/lalph/pull/305) [`b29813e`](https://github.com/tim-smart/lalph/commit/b29813e8f3b6651a55a0c4768c2f02c70b2393a6) Thanks [@tim-smart](https://github.com/tim-smart)! - Add ETag-based conditional request caching to the GitHub API client so repeated GET calls can reuse cached responses when GitHub returns `304 Not Modified`, reducing API rate limit usage.
+
+## 0.3.33
+
+### Patch Changes
+
+- [`179a481`](https://github.com/tim-smart/lalph/commit/179a481db7db4232e0af8369ba094b741694230a) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+- [#301](https://github.com/tim-smart/lalph/pull/301) [`1539da1`](https://github.com/tim-smart/lalph/commit/1539da1e843da97407c3902b5653e5c92018aba4) Thanks [@tim-smart](https://github.com/tim-smart)! - Mark tasks as done when PR auto-merge succeeds in PR git flow.
+
+## 0.3.32
+
+### Patch Changes
+
+- [`03bcac7`](https://github.com/tim-smart/lalph/commit/03bcac7ff24eeef47846263dfc190bcdb9e4c219) Thanks [@tim-smart](https://github.com/tim-smart)! - allow some fields to be missing in prd.yml, or creating from strings only
+
+## 0.3.31
+
+### Patch Changes
+
+- [`bedc2b3`](https://github.com/tim-smart/lalph/commit/bedc2b3a98e583a3b86b3d09c528b78830ffc831) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.30
+
+### Patch Changes
+
+- [`e07e444`](https://github.com/tim-smart/lalph/commit/e07e444ab4e34b55e049c641c662f215a037e0dc) Thanks [@tim-smart](https://github.com/tim-smart)! - show outdated reviews if not collapsed
+
+## 0.3.29
+
+### Patch Changes
+
+- [`4c4511f`](https://github.com/tim-smart/lalph/commit/4c4511f827461b5f7bf995fb684292c0ab90939d) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.28
+
+### Patch Changes
+
+- [`5e28ecc`](https://github.com/tim-smart/lalph/commit/5e28ecc7a16fb0ee9bb446bc3d2ac750dc6319d8) Thanks [@tim-smart](https://github.com/tim-smart)! - hide PR comments from common bot accounts
+
+## 0.3.27
+
+### Patch Changes
+
+- [`a857b5d`](https://github.com/tim-smart/lalph/commit/a857b5dc7130481612e15b79dc85c6dd92839e29) Thanks [@tim-smart](https://github.com/tim-smart)! - update to effect v4 beta
+
+## 0.3.26
+
+### Patch Changes
+
+- [#291](https://github.com/tim-smart/lalph/pull/291) [`cd7a394`](https://github.com/tim-smart/lalph/commit/cd7a394ab5b95f536e1f5a2003f2cac779587bf4) Thanks [@tim-smart](https://github.com/tim-smart)! - Preserve existing GitHub issue labels during `updateIssue` and only apply explicit label changes for workflow state and auto-merge labels.
+
+- [#290](https://github.com/tim-smart/lalph/pull/290) [`a3a2e7b`](https://github.com/tim-smart/lalph/commit/a3a2e7b2ffe1fcf9c3cfcb47b9fbb10d5f471fb4) Thanks [@tim-smart](https://github.com/tim-smart)! - Fix Claude chooser invocation by inserting `--` before the prompt argument when using `--disallowed-tools`. This prevents variadic tool parsing from swallowing the positional prompt and restores chooser task selection.
+
+## 0.3.25
+
+### Patch Changes
+
+- [#286](https://github.com/tim-smart/lalph/pull/286) [`2cc7b87`](https://github.com/tim-smart/lalph/commit/2cc7b87f1562c8cf47a887270b4130cf151749ff) Thanks [@tim-smart](https://github.com/tim-smart)! - Add a `--file` / `-f` flag to `lalph plan` to load plan content from a markdown file and skip opening the interactive editor.
+
+## 0.3.24
+
+### Patch Changes
+
+- [`8d69efc`](https://github.com/tim-smart/lalph/commit/8d69efc81f6e93ed970717d47fb4825dbeadf1bc) Thanks [@tim-smart](https://github.com/tim-smart)! - fix local worktree layer
+
+- [`2b9c331`](https://github.com/tim-smart/lalph/commit/2b9c3312303f9397ca9e0c8bac58876d67082b94) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.23
+
+### Patch Changes
+
+- [`0f9a153`](https://github.com/tim-smart/lalph/commit/0f9a153aea1afc5c9d3aaf52ae6597c12f27384a) Thanks [@tim-smart](https://github.com/tim-smart)! - wrap diff hunks with CDATA
+
+- [#282](https://github.com/tim-smart/lalph/pull/282) [`9e16536`](https://github.com/tim-smart/lalph/commit/9e16536aa9109c21776a14e16900948c9feaea84) Thanks [@tim-smart](https://github.com/tim-smart)! - Prefer the current working directory for `.lalph` lookups, then fall back to the project root when running from subdirectories. This keeps settings, cache, and worktree behavior aligned with the main project `.lalph` directory.
+
+## 0.3.22
+
+### Patch Changes
+
+- [`0075456`](https://github.com/tim-smart/lalph/commit/00754562b14408d7902c5f934fe94621b1a20ec4) Thanks [@tim-smart](https://github.com/tim-smart)! - update effect
+
+## 0.3.21
+
+### Patch Changes
+
+- [`fda1b34`](https://github.com/tim-smart/lalph/commit/fda1b346a71cd433f16a27f2b8bf2e59ec8b9f43) Thanks [@tim-smart](https://github.com/tim-smart)! - review prompt tweaks
+
+## 0.3.20
+
+### Patch Changes
+
+- [`e264ca5`](https://github.com/tim-smart/lalph/commit/e264ca5c606d05b51a66342b3fd66a03c7214b17) Thanks [@tim-smart](https://github.com/tim-smart)! - ignore dispose errors
+
+## 0.3.19
+
+### Patch Changes
+
+- [`66d2b52`](https://github.com/tim-smart/lalph/commit/66d2b52455c10e7ce11bd24e36a1cfb2e27edff1) Thanks [@tim-smart](https://github.com/tim-smart)! - catch RunnerStalled errors if the task has moved to in-review
+
+## 0.3.18
+
+### Patch Changes
+
+- [#276](https://github.com/tim-smart/lalph/pull/276) [`6ed2875`](https://github.com/tim-smart/lalph/commit/6ed2875e25d8d8fcd21f597be58740c3c89a4215) Thanks [@tim-smart](https://github.com/tim-smart)! - Clear unstaged working tree changes before commit-mode rebases so post-work rebasing no longer fails on a dirty worktree.
+
+## 0.3.17
+
+### Patch Changes
+
+- [`1931cde`](https://github.com/tim-smart/lalph/commit/1931cde0d81448aadee65474012d72212951c661) Thanks [@tim-smart](https://github.com/tim-smart)! - try to ensure commit mode review commits changes
+
+## 0.3.16
+
+### Patch Changes
+
+- [`5d88208`](https://github.com/tim-smart/lalph/commit/5d88208758d4932ff83c61aece0a237414e617a5) Thanks [@tim-smart](https://github.com/tim-smart)! - cache linear state
+
+## 0.3.15
+
+### Patch Changes
+
+- [#270](https://github.com/tim-smart/lalph/pull/270) [`fb602e4`](https://github.com/tim-smart/lalph/commit/fb602e428aa36989b358655627b4df56d9036b8f) Thanks [@tim-smart](https://github.com/tim-smart)! - Move PR review feedback line numbers from the `comment` attribute into a dedicated `<lineNumber>` XML tag.
+
+## 0.3.14
+
+### Patch Changes
+
+- [#268](https://github.com/tim-smart/lalph/pull/268) [`71b2eb6`](https://github.com/tim-smart/lalph/commit/71b2eb6d40b47cb9629bb65b464132736756a857) Thanks [@tim-smart](https://github.com/tim-smart)! - Add a "Create a new Linear project" option to the Linear project selector, including prompts for project name and team before creating and selecting the new project.
+
+## 0.3.13
+
+### Patch Changes
+
+- [#265](https://github.com/tim-smart/lalph/pull/265) [`c7f640b`](https://github.com/tim-smart/lalph/commit/c7f640b295d7b8168156ebe7b12d9ac31016496e) Thanks [@tim-smart](https://github.com/tim-smart)! - Plan mode now commits and pushes generated specifications when it finishes.
+
+- [#266](https://github.com/tim-smart/lalph/pull/266) [`03b1395`](https://github.com/tim-smart/lalph/commit/03b13950b590ffc29a322b05bbc3a55d353b7548) Thanks [@tim-smart](https://github.com/tim-smart)! - Update docs
+
+## 0.3.12
+
+### Patch Changes
+
+- [`ac21a73`](https://github.com/tim-smart/lalph/commit/ac21a73d26727665ce11bc57924ce90f6beb18af) Thanks [@tim-smart](https://github.com/tim-smart)! - make current issues uninteruptible
+
+## 0.3.11
+
+### Patch Changes
+
+- [`e50f2fb`](https://github.com/tim-smart/lalph/commit/e50f2fb43d95388ebac1d5ce8ef8d3bab7df2a0b) Thanks [@tim-smart](https://github.com/tim-smart)! - don't create issue if nothing is changed
+
+- [`33b6aa1`](https://github.com/tim-smart/lalph/commit/33b6aa1035c24efaf5683a748d4d64dbefc94bb2) Thanks [@tim-smart](https://github.com/tim-smart)! - show opencode thinking output
+
+## 0.3.10
+
+### Patch Changes
+
+- [#261](https://github.com/tim-smart/lalph/pull/261) [`5213306`](https://github.com/tim-smart/lalph/commit/52133065be8a7cf55ac5d5fd2d829a2663d14b58) Thanks [@tim-smart](https://github.com/tim-smart)! - Blank out the default issue description placeholder when unchanged.
+
+## 0.3.9
+
+### Patch Changes
+
+- [`c588a09`](https://github.com/tim-smart/lalph/commit/c588a09773d76e05e252567a5c3af90a90a9b959) Thanks [@tim-smart](https://github.com/tim-smart)! - fix task chooser agent
+
+## 0.3.8
+
+### Patch Changes
+
+- [`d2fa23b`](https://github.com/tim-smart/lalph/commit/d2fa23bd9866468677b27ed29603ec47b3385d5d) Thanks [@tim-smart](https://github.com/tim-smart)! - set task in-progress using api
+
+## 0.3.7
+
+### Patch Changes
+
+- [`38956b0`](https://github.com/tim-smart/lalph/commit/38956b031648ed975966b44038c367ed752dc2e7) Thanks [@tim-smart](https://github.com/tim-smart)! - fix race condition on task sync
+
+## 0.3.6
+
+### Patch Changes
+
+- [#255](https://github.com/tim-smart/lalph/pull/255) [`6c33af0`](https://github.com/tim-smart/lalph/commit/6c33af00e708e426053acf1792afaf80f201cc55) Thanks [@tim-smart](https://github.com/tim-smart)! - Cancel active runs when the current task leaves in-progress or in-review.
+
+## 0.3.5
+
+### Patch Changes
+
+- [`f237057`](https://github.com/tim-smart/lalph/commit/f23705720fcab320ed3976ae32394fe5d91b90e1) Thanks [@tim-smart](https://github.com/tim-smart)! - try improve plan subagents
+
+## 0.3.4
+
+### Patch Changes
+
+- [`afe919d`](https://github.com/tim-smart/lalph/commit/afe919d8b0c0fecdfce73884a80418e4781bafa7) Thanks [@tim-smart](https://github.com/tim-smart)! - launch plan editor as fast as possible
+
+## 0.3.3
+
+### Patch Changes
+
+- [`357daa5`](https://github.com/tim-smart/lalph/commit/357daa5bad745050fea64de057768aabcbcfc7c9) Thanks [@tim-smart](https://github.com/tim-smart)! - fix project edit
+
+## 0.3.2
+
+### Patch Changes
+
+- [`1db59bb`](https://github.com/tim-smart/lalph/commit/1db59bbd2cd33ee54c7e9402f7e2ea0530d585f8) Thanks [@tim-smart](https://github.com/tim-smart)! - fix project removal
+
+- [`0ce7a30`](https://github.com/tim-smart/lalph/commit/0ce7a30a015cf430c359ffc9734cf284684e6aea) Thanks [@tim-smart](https://github.com/tim-smart)! - fix worker agents using preset args
+
+## 0.3.1
+
+### Patch Changes
+
+- [`c567f0b`](https://github.com/tim-smart/lalph/commit/c567f0b096b30228cc8accb067d7361f1fbeb4a6) Thanks [@github-actions[bot]](https://github.com/github-actions%5Bbot%5D)! - don't use extra args for plan mode
+
+## 0.3.0
+
+### Minor Changes
+
+- [#248](https://github.com/tim-smart/lalph/pull/248) [`113ef74`](https://github.com/tim-smart/lalph/commit/113ef7470dcf6978a0b071027927929348629a55) Thanks [@tim-smart](https://github.com/tim-smart)! - add agent presets, to allow for different models per task
+
+## 0.2.21
+
+### Patch Changes
+
+- [`b1b5d7b`](https://github.com/tim-smart/lalph/commit/b1b5d7b9d59b34da3dddeb7f7707fc2ea80035b0) Thanks [@tim-smart](https://github.com/tim-smart)! - speed up launching editor for issue command
+
+- [#247](https://github.com/tim-smart/lalph/pull/247) [`2cd68f0`](https://github.com/tim-smart/lalph/commit/2cd68f04defbc6c547161dd6b2b3ea15d002f38e) Thanks [@tim-smart](https://github.com/tim-smart)! - require commit flow instructions to add task references in commits
+
+## 0.2.20
+
+### Patch Changes
+
+- [`e1560f2`](https://github.com/tim-smart/lalph/commit/e1560f2d08f48bf0ef23747b58eb9cdc84a03686) Thanks [@tim-smart](https://github.com/tim-smart)! - create plans in your EDITOR
+
+## 0.2.19
+
+### Patch Changes
+
+- [`d23e8ce`](https://github.com/tim-smart/lalph/commit/d23e8ce6dc4974ad2fbf50f0b8605fadcd4de73d) Thanks [@tim-smart](https://github.com/tim-smart)! - include review bodies in pr feedback
+
+## 0.2.18
+
+### Patch Changes
+
+- [#241](https://github.com/tim-smart/lalph/pull/241) [`6c80b03`](https://github.com/tim-smart/lalph/commit/6c80b032ab158f690743cddd5e4090c6450ace85) Thanks [@tim-smart](https://github.com/tim-smart)! - Remove per-project kvs data when a project is deleted.
+
+## 0.2.17
+
+### Patch Changes
+
+- fix version
+
+## 0.2.16
+
+### Patch Changes
+
+- fix worktree-setup path
+
+## 0.2.15
+
+### Patch Changes
+
+- fix version
+
+## 0.2.14
+
+### Patch Changes
+
+- [`dae4390`](https://github.com/tim-smart/lalph/commit/dae43906415109764f9a60b4ff747a35b93117d7) Thanks [@tim-smart](https://github.com/tim-smart)! - improve worktree setup
+
+## 0.2.13
+
+### Patch Changes
+
+- [#239](https://github.com/tim-smart/lalph/pull/239) [`eb4008e`](https://github.com/tim-smart/lalph/commit/eb4008eaf8d2987f6fe3b3c9dc8907dc8f4c2538) Thanks [@tim-smart](https://github.com/tim-smart)! - Fetch the target branch remote before checkout in worktree setup.
+
+## 0.2.12
+
+### Patch Changes
+
+- [#237](https://github.com/tim-smart/lalph/pull/237) [`bf62303`](https://github.com/tim-smart/lalph/commit/bf6230352692bfa5d23790705f3d1f43dd265e19) Thanks [@tim-smart](https://github.com/tim-smart)! - Ensure failed runs always reset the task to todo.
+
+## 0.2.11
+
+### Patch Changes
+
+- [#235](https://github.com/tim-smart/lalph/pull/235) [`8724f89`](https://github.com/tim-smart/lalph/commit/8724f898e3efb75ca63a884273d5e050d2057555) Thanks [@tim-smart](https://github.com/tim-smart)! - Move target branch checkout and setup script handling into Worktree.
+
+## 0.2.10
+
+### Patch Changes
+
+- [`82afb15`](https://github.com/tim-smart/lalph/commit/82afb15a8a435eba79f21931527de0b73175c698) Thanks [@tim-smart](https://github.com/tim-smart)! - tweak review prompt
+
+## 0.2.9
+
+### Patch Changes
+
+- [`574c26e`](https://github.com/tim-smart/lalph/commit/574c26e5c8d1b01c45f590bccf3b4286de872525) Thanks [@tim-smart](https://github.com/tim-smart)! - add checkout script
+
+## 0.2.8
+
+### Patch Changes
+
+- [`b2b6de6`](https://github.com/tim-smart/lalph/commit/b2b6de6e063a5355c6d603362ebdf385f3d6de31) Thanks [@tim-smart](https://github.com/tim-smart)! - improve chosen task errors
+
+## 0.2.7
+
+### Patch Changes
+
+- [`3cc4129`](https://github.com/tim-smart/lalph/commit/3cc4129d1f2a14016f600cd80a056e5956de6e84) Thanks [@tim-smart](https://github.com/tim-smart)! - clarify updating prd after pull request
+
+## 0.2.6
+
+### Patch Changes
+
+- [`256ba4b`](https://github.com/tim-smart/lalph/commit/256ba4bb3151f240d5dfbad267f1bd4d9e6f7163) Thanks [@tim-smart](https://github.com/tim-smart)! - improve plan mode
+
+## 0.2.5
+
+### Patch Changes
+
+- [`2c24b26`](https://github.com/tim-smart/lalph/commit/2c24b267f41269c34643db1766683f61f187d531) Thanks [@tim-smart](https://github.com/tim-smart)! - rebuild issue source on error
+
+## 0.2.4
+
+### Patch Changes
+
+- [`b34795a`](https://github.com/tim-smart/lalph/commit/b34795a1d0b70404c75e1751b2d3933db621c8e7) Thanks [@tim-smart](https://github.com/tim-smart)! - add --new flag to plan mode
+
+## 0.2.3
+
+### Patch Changes
+
+- [`89203d0`](https://github.com/tim-smart/lalph/commit/89203d091ba676eeba0cc03e3a9797977c5e6371) Thanks [@tim-smart](https://github.com/tim-smart)! - improve add wizard
+
+## 0.2.2
+
+### Patch Changes
+
+- [#223](https://github.com/tim-smart/lalph/pull/223) [`8d6e8a1`](https://github.com/tim-smart/lalph/commit/8d6e8a15e059391a955a4adf83ef63c95a0c975c) Thanks [@tim-smart](https://github.com/tim-smart)! - Allow projects to be empty and guide users through first-time setup.
+
+## 0.2.1
+
+### Patch Changes
+
+- [`35a380d`](https://github.com/tim-smart/lalph/commit/35a380d0ac34ff47a0a0d0ee2b5eb5bcf35345e9) Thanks [@tim-smart](https://github.com/tim-smart)! - show enabled in project list
+
+## 0.2.0
+
+### Minor Changes
+
+- [#220](https://github.com/tim-smart/lalph/pull/220) [`216af66`](https://github.com/tim-smart/lalph/commit/216af66a8a579a1c37b203f8127e1d7b292942ec) Thanks [@tim-smart](https://github.com/tim-smart)! - Add projects commands
+
+  Each project represents a sub-source of issues with its own configuration.
+
+### Patch Changes
+
+- [#220](https://github.com/tim-smart/lalph/pull/220) [`216af66`](https://github.com/tim-smart/lalph/commit/216af66a8a579a1c37b203f8127e1d7b292942ec) Thanks [@tim-smart](https://github.com/tim-smart)! - add command aliases
+
+## 0.1.114
+
+### Patch Changes
+
+- [#216](https://github.com/tim-smart/lalph/pull/216) [`6d98d9a`](https://github.com/tim-smart/lalph/commit/6d98d9a0a915de33d4de06a35b2695d3852c41f2) Thanks [@tim-smart](https://github.com/tim-smart)! - Add a dedicated source status command definition.
+
+## 0.1.113
+
+### Patch Changes
+
+- [#215](https://github.com/tim-smart/lalph/pull/215) [`baceb6f`](https://github.com/tim-smart/lalph/commit/baceb6f5dd70c08c8fa08f14f62f387a549add8b) Thanks [@tim-smart](https://github.com/tim-smart)! - force-delete existing gitflow branch before checkout
+
+- [`48bf3c8`](https://github.com/tim-smart/lalph/commit/48bf3c8b3784bb06093b29c4376a004be94fcc23) Thanks [@tim-smart](https://github.com/tim-smart)! - add tracing to currentIssuesAtom
+
+## 0.1.112
+
+### Patch Changes
+
+- [`64644d1`](https://github.com/tim-smart/lalph/commit/64644d1085846942faf08f8e0015f7c8b2a05933) Thanks [@tim-smart](https://github.com/tim-smart)! - disable opencode question tool
+
+## 0.1.111
+
+### Patch Changes
+
+- [`42a30e2`](https://github.com/tim-smart/lalph/commit/42a30e234e8ba3c077555a7152138589e0a43d16) Thanks [@tim-smart](https://github.com/tim-smart)! - created tasks inherit parent auto-merge
+
+## 0.1.110
+
+### Patch Changes
+
+- [`34ab42b`](https://github.com/tim-smart/lalph/commit/34ab42b9951ed877ac1a47004e1c32efd07b0ce7) Thanks [@tim-smart](https://github.com/tim-smart)! - support custom review instructions
+
+## 0.1.109
+
+### Patch Changes
+
+- [`d2ee743`](https://github.com/tim-smart/lalph/commit/d2ee74325c63edef3dc303e358cfd93e9b7629ad) Thanks [@tim-smart](https://github.com/tim-smart)! - improve instructions prompt
+
+- [`ace3d97`](https://github.com/tim-smart/lalph/commit/ace3d97a92f2e2552b6991fd29aa0d1b3020bc12) Thanks [@tim-smart](https://github.com/tim-smart)! - remove instruction generation
+
+## 0.1.108
+
+### Patch Changes
+
+- [`2c01153`](https://github.com/tim-smart/lalph/commit/2c011536b8bfeed15355340a78a9044dfe07c110) Thanks [@tim-smart](https://github.com/tim-smart)! - improve instruction prompt
+
+## 0.1.107
+
+### Patch Changes
+
+- [`5a15514`](https://github.com/tim-smart/lalph/commit/5a15514b339bed920c8f08b09f775ab9c342a9cb) Thanks [@github-actions[bot]](https://github.com/github-actions%5Bbot%5D)! - add flagUnmergable to git commit flow
+
+## 0.1.106
+
+### Patch Changes
+
+- [`8d781a0`](https://github.com/tim-smart/lalph/commit/8d781a07fa9b06eee87dd1ef85f97d95a0145da3) Thanks [@tim-smart](https://github.com/tim-smart)! - try again if there are merge conflicts during auto-merge
+
+## 0.1.105
+
+### Patch Changes
+
+- [`f1d183a`](https://github.com/tim-smart/lalph/commit/f1d183afa43ed5ff8be11e7c451386a79c2074b7) Thanks [@tim-smart](https://github.com/tim-smart)! - add --commit mode to not create github PRs
+
+- [`2060bc0`](https://github.com/tim-smart/lalph/commit/2060bc04e1489ead997833bb6c260a896dcfc9bb) Thanks [@tim-smart](https://github.com/tim-smart)! - capture worker state transition timing
+
+- [#205](https://github.com/tim-smart/lalph/pull/205) [`c9dfffa`](https://github.com/tim-smart/lalph/commit/c9dfffa838f5395769186d4a5e73fa0ce4518f32) Thanks [@tim-smart](https://github.com/tim-smart)! - Add an ASCII mascot to the README introduction.
+
+## 0.1.104
+
+### Patch Changes
+
+- [`c15ce88`](https://github.com/tim-smart/lalph/commit/c15ce88b4f1c6bff2821a930bfa01f53d24bcc4d) Thanks [@tim-smart](https://github.com/tim-smart)! - when reading issues, don't use stale values
+
+## 0.1.103
+
+### Patch Changes
+
+- [#201](https://github.com/tim-smart/lalph/pull/201) [`98d2ab5`](https://github.com/tim-smart/lalph/commit/98d2ab541893c6d3482f231a1f0f020013201ebf) Thanks [@tim-smart](https://github.com/tim-smart)! - add worker state logging
+
+## 0.1.102
+
+### Patch Changes
+
+- [`32990bc`](https://github.com/tim-smart/lalph/commit/32990bc472e7c0cbc6328825c5a220699168c6c5) Thanks [@tim-smart](https://github.com/tim-smart)! - review prompt tweaks
+
+## 0.1.101
+
+### Patch Changes
+
+- [`543ba9e`](https://github.com/tim-smart/lalph/commit/543ba9e68980cc53a75b575f14c11cf0047c2696) Thanks [@tim-smart](https://github.com/tim-smart)! - review agent tweaks
+
+## 0.1.100
+
+### Patch Changes
+
+- [`6858c70`](https://github.com/tim-smart/lalph/commit/6858c70c1cf111c163e2bffb7b39c7d0917b69dc) Thanks [@tim-smart](https://github.com/tim-smart)! - fix linear blockedBy
+
+## 0.1.99
+
+### Patch Changes
+
+- [`b17c814`](https://github.com/tim-smart/lalph/commit/b17c8142eecfbb20cfe46d470afe48e2cb583315) Thanks [@tim-smart](https://github.com/tim-smart)! - add spans to agents
+
+## 0.1.98
+
+### Patch Changes
+
+- [#185](https://github.com/tim-smart/lalph/pull/185) [`046cd94`](https://github.com/tim-smart/lalph/commit/046cd949ebc5aacd0af3e79cb4a639ecffaa20bf) Thanks [@sledorze](https://github.com/sledorze)! - disable AskUserQuestion tool to prevent hangs
+
+- [#188](https://github.com/tim-smart/lalph/pull/188) [`ec835f7`](https://github.com/tim-smart/lalph/commit/ec835f790b926153d3dff303c0d18c27c43a4ea7) Thanks [@sledorze](https://github.com/sledorze)! - improve claude output transformer
+
+## 0.1.97
+
+### Patch Changes
+
+- [`5d716e6`](https://github.com/tim-smart/lalph/commit/5d716e672c9c566e7055597756626ceb1909fc52) Thanks [@tim-smart](https://github.com/tim-smart)! - add option to enable the review agent
+
+## 0.1.96
+
+### Patch Changes
+
+- [`28e4ff8`](https://github.com/tim-smart/lalph/commit/28e4ff873d0584978227762841f48e09c14222c3) Thanks [@tim-smart](https://github.com/tim-smart)! - sort linear issues
+
+## 0.1.95
+
+### Patch Changes
+
+- [`f8a01a0`](https://github.com/tim-smart/lalph/commit/f8a01a05b39909cbeda4ba34f9e81e1dbd3881e4) Thanks [@tim-smart](https://github.com/tim-smart)! - add reviewer agent
+
+- [`7a4f1a7`](https://github.com/tim-smart/lalph/commit/7a4f1a70b5a2a07ca45f101519c4a1ad9f7d3b54) Thanks [@tim-smart](https://github.com/tim-smart)! - allow added remote to target branch setting
+
+## 0.1.94
+
+### Patch Changes
+
+- [`b30982b`](https://github.com/tim-smart/lalph/commit/b30982bf24943af6f186a490bca1e55cde94a772) Thanks [@tim-smart](https://github.com/tim-smart)! - improve rebase instruction
+
+## 0.1.93
+
+### Patch Changes
+
+- [`7f7bfab`](https://github.com/tim-smart/lalph/commit/7f7bfab7dcfa8de79d0af51e1ff40c375a618e55) Thanks [@tim-smart](https://github.com/tim-smart)! - improve the rebase instruction
+
+## 0.1.92
+
+### Patch Changes
+
+- [`f71cc88`](https://github.com/tim-smart/lalph/commit/f71cc880e5edf8a746b31494a6a207fec2f74259) Thanks [@tim-smart](https://github.com/tim-smart)! - if PR is missing, maybe revert issue state
+
+## 0.1.91
+
+### Patch Changes
+
+- [`e9db189`](https://github.com/tim-smart/lalph/commit/e9db189b403019b1ebf34f18eb102a81712976cc) Thanks [@tim-smart](https://github.com/tim-smart)! - improve pr auto-merge
+
+## 0.1.90
+
+### Patch Changes
+
+- [`48fb9be`](https://github.com/tim-smart/lalph/commit/48fb9be92bff1b9f4f4ba03795f3947a54ff4dff) Thanks [@tim-smart](https://github.com/tim-smart)! - only allow updates for the chosen issue
+
+## 0.1.86
+
+### Patch Changes
+
+- [`a796227`](https://github.com/tim-smart/lalph/commit/a7962276250bdbb41fd4c7479ba3a6fd1f4faf1d) Thanks [@tim-smart](https://github.com/tim-smart)! - clarify only open PR's should be re-used
+
+## 0.1.85
+
+### Patch Changes
+
+- [`f55d212`](https://github.com/tim-smart/lalph/commit/f55d2129e89cfc224864ff0fed7e143f15dfa8c7) Thanks [@tim-smart](https://github.com/tim-smart)! - preserve spec info in descriptions
+
+## 0.1.84
+
+### Patch Changes
+
+- [`c4f2c44`](https://github.com/tim-smart/lalph/commit/c4f2c44b4e60e739cc236a5ef22fe21e4bacc1af) Thanks [@tim-smart](https://github.com/tim-smart)! - reduce linear api calls
+
+## 0.1.83
+
+### Patch Changes
+
+- [`54d1908`](https://github.com/tim-smart/lalph/commit/54d19087646c6e4359614de9b7c57fec67122e3d) Thanks [@tim-smart](https://github.com/tim-smart)! - add a 3rd step to the main loop, which generates the prompt for the main work agent
+
+## 0.1.82
+
+### Patch Changes
+
+- [#172](https://github.com/tim-smart/lalph/pull/172) [`a1c2c37`](https://github.com/tim-smart/lalph/commit/a1c2c37c4244d6f9170831a9c64dc8906721bf43) Thanks [@tim-smart](https://github.com/tim-smart)! - Show the created issue URL after running the issue command.
+
+## 0.1.81
+
+### Patch Changes
+
+- [`d431496`](https://github.com/tim-smart/lalph/commit/d43149637100dccc97f9b0457f01211dc4721ed8) Thanks [@tim-smart](https://github.com/tim-smart)! - update publish workflow
+
+## 0.1.80
+
+### Patch Changes
+
+- [`5f19caa`](https://github.com/tim-smart/lalph/commit/5f19caaad40016ac5277f6b5e0fff41930bd0dba) Thanks [@tim-smart](https://github.com/tim-smart)! - test github release action
+
+## 0.1.79
+
+### Patch Changes
+
+- [#167](https://github.com/tim-smart/lalph/pull/167) [`5ef8606`](https://github.com/tim-smart/lalph/commit/5ef8606311a6a4c4f94226d3a9039fc9e28711f9) Thanks [@tim-smart](https://github.com/tim-smart)! - add verbose logging option
+
+## 0.1.78
+
+### Patch Changes
+
+- [`02aca94`](https://github.com/tim-smart/lalph/commit/02aca94ac74b9afbbe8f7c5f886be631246527d8) Thanks [@tim-smart](https://github.com/tim-smart)! - for github source, ensure tasks are in progress before starting another iteration
+
+- [`0860bdf`](https://github.com/tim-smart/lalph/commit/0860bdfb33193efddcf334e088b6dfbf5ba5cfd3) Thanks [@tim-smart](https://github.com/tim-smart)! - Skip blocked-by lookups for non-todo Linear issues.
+
+- [`4f59174`](https://github.com/tim-smart/lalph/commit/4f59174333c49695eea160c1dc1b394e9becefee) Thanks [@tim-smart](https://github.com/tim-smart)! - Reset in-progress issues to todo before the root loop starts.
+
+## 0.1.77
+
+### Patch Changes
+
+- [#160](https://github.com/tim-smart/lalph/pull/160) [`8256c17`](https://github.com/tim-smart/lalph/commit/8256c171b0a8b6460b8db00200951e1ca6328cd6) Thanks [@tim-smart](https://github.com/tim-smart)! - Avoid duplicate issues when plan reruns regenerate tasks with missing IDs.
+
+## 0.1.76
+
+### Patch Changes
+
+- [#154](https://github.com/tim-smart/lalph/pull/154) [`1f74937`](https://github.com/tim-smart/lalph/commit/1f749375c74eef349781fc4aeb72c5f395734b96) Thanks [@sledorze](https://github.com/sledorze)! - add -d alias for --dangerous
+
+- [#154](https://github.com/tim-smart/lalph/pull/154) [`1f74937`](https://github.com/tim-smart/lalph/commit/1f749375c74eef349781fc4aeb72c5f395734b96) Thanks [@sledorze](https://github.com/sledorze)! - use --verbose for claude and format the output
+
+## 0.1.75
+
+### Patch Changes
+
+- [#152](https://github.com/tim-smart/lalph/pull/152) [`3b27cc6`](https://github.com/tim-smart/lalph/commit/3b27cc6f274d85227853f0585e0cd6f560bbe3a3) Thanks [@tim-smart](https://github.com/tim-smart)! - Add a --dangerous flag to plan mode to skip permission prompts for supported agents.
+
+## 0.1.74
+
+### Patch Changes
+
+- [#149](https://github.com/tim-smart/lalph/pull/149) [`315c8ed`](https://github.com/tim-smart/lalph/commit/315c8edce1466d56eecac528345a8b7dadce4e7d) Thanks [@tim-smart](https://github.com/tim-smart)! - Enable stream-json output for Claude work runs to avoid false stall detection.
+
+## 0.1.73
+
+### Patch Changes
+
+- [#147](https://github.com/tim-smart/lalph/pull/147) [`ec19437`](https://github.com/tim-smart/lalph/commit/ec1943710d0a1ec13b56d08d796e928051282248) Thanks [@tim-smart](https://github.com/tim-smart)! - Allow configuring the editor used for issue creation (and prd editing) via
+  `LALPH_EDITOR`, falling back to `EDITOR`, defaulting to `nano`.
+
+- [#144](https://github.com/tim-smart/lalph/pull/144) [`a470575`](https://github.com/tim-smart/lalph/commit/a470575fee1e15cdfab94c61955303fad1f253e3) Thanks [@tim-smart](https://github.com/tim-smart)! - Include the specification text in plan-mode prompts for review.
+
+- [#144](https://github.com/tim-smart/lalph/pull/144) [`a470575`](https://github.com/tim-smart/lalph/commit/a470575fee1e15cdfab94c61955303fad1f253e3) Thanks [@tim-smart](https://github.com/tim-smart)! - Move plan-mode specification review to the final step.
+
+## 0.1.72
+
+### Patch Changes
+
+- [`83b7926`](https://github.com/tim-smart/lalph/commit/83b7926df1368726c530c173136c184d76a597ec) Thanks [@tim-smart](https://github.com/tim-smart)! - switch to oauth github app
+
+## 0.1.71
+
+### Patch Changes
+
+- [#138](https://github.com/tim-smart/lalph/pull/138) [`84f2df3`](https://github.com/tim-smart/lalph/commit/84f2df37c0943f582a8ff93b45fa776bd517e348) Thanks [@tim-smart](https://github.com/tim-smart)! - Mention the default PR base branch in the CLI help text.
+
+## 0.1.70
+
+### Patch Changes
+
+- [#135](https://github.com/tim-smart/lalph/pull/135) [`6e52012`](https://github.com/tim-smart/lalph/commit/6e52012de103b7a2fc68a98767ce3665bbfc1272) Thanks [@tim-smart](https://github.com/tim-smart)! - Guard PRD sync/update operations with a semaphore to preserve ordering.
+
+## 0.1.69
+
+### Patch Changes
+
+- [#133](https://github.com/tim-smart/lalph/pull/133) [`cddf946`](https://github.com/tim-smart/lalph/commit/cddf946758cce23f9682cfd37558de9908d329d4) Thanks [@tim-smart](https://github.com/tim-smart)! - Fix issue reversion so non-done updates return to todo.
+
+## 0.1.68
+
+### Patch Changes
+
+- [#130](https://github.com/tim-smart/lalph/pull/130) [`43106c5`](https://github.com/tim-smart/lalph/commit/43106c56e6764b42d13c3b5a6ddbb3c43da4cddf) Thanks [@tim-smart](https://github.com/tim-smart)! - Fix PR feedback output when only hidden review threads exist.
+
+## 0.1.67
+
+### Patch Changes
+
+- [#127](https://github.com/tim-smart/lalph/pull/127) [`483f141`](https://github.com/tim-smart/lalph/commit/483f141799d0a7c9f2f5aa1ec3be5f1ab7963615) Thanks [@tim-smart](https://github.com/tim-smart)! - Improve the GitHub CLI repo discovery error message when a repository cannot be resolved.
+
+## 0.1.66
+
+### Patch Changes
+
+- [#124](https://github.com/tim-smart/lalph/pull/124) [`9be00f5`](https://github.com/tim-smart/lalph/commit/9be00f5efd85a3114514c9ba3bfc2932d05b60e1) Thanks [@tim-smart](https://github.com/tim-smart)! - Move command prefix configuration to a stored setting prompted by the agent selector.
+
+## 0.1.65
+
+### Patch Changes
+
+- [`50d0b00`](https://github.com/tim-smart/lalph/commit/50d0b0068ccc956bf3de4fc4c7e7790d79f4af41) Thanks [@tim-smart](https://github.com/tim-smart)! - use latest state for Prd updatedIssies
+
+## 0.1.64
+
+### Patch Changes
+
+- [#121](https://github.com/tim-smart/lalph/pull/121) [`e3deed0`](https://github.com/tim-smart/lalph/commit/e3deed07453a7b6ec8072c1ef5db512a897689a7) Thanks [@tim-smart](https://github.com/tim-smart)! - Move PR detection details into the task selection flow and pass existing PR numbers into execution prompts.
+
+- [#121](https://github.com/tim-smart/lalph/pull/121) [`e3deed0`](https://github.com/tim-smart/lalph/commit/e3deed07453a7b6ec8072c1ef5db512a897689a7) Thanks [@tim-smart](https://github.com/tim-smart)! - Clarify PR lookup instructions and use real newlines in task prompts.
+
+- [#119](https://github.com/tim-smart/lalph/pull/119) [`9139265`](https://github.com/tim-smart/lalph/commit/9139265107e3ee75b895591247e0ced741d9c8b0) Thanks [@tim-smart](https://github.com/tim-smart)! - Clarify that follow-up tasks from research work should depend on the research task.
+
+## 0.1.63
+
+### Patch Changes
+
+- [#117](https://github.com/tim-smart/lalph/pull/117) [`b58fee2`](https://github.com/tim-smart/lalph/commit/b58fee263247146987ca6c35ca7f75847a626734) Thanks [@tim-smart](https://github.com/tim-smart)! - Seed `scripts/worktree-setup.sh` when a worktree is created without one.
+
+## 0.1.62
+
+### Patch Changes
+
+- [`9b52b70`](https://github.com/tim-smart/lalph/commit/9b52b7052790457d2f4489fe9b145ed274401bd0) Thanks [@tim-smart](https://github.com/tim-smart)! - Update task creation guidance to account for validation checks.
+
+## 0.1.61
+
+### Patch Changes
+
+- [`9c3e061`](https://github.com/tim-smart/lalph/commit/9c3e061cf8cab2c6c4d30cbf6e4ecad467765f0d) Thanks [@tim-smart](https://github.com/tim-smart)! - emphasis on empty blockedBy
+
+## 0.1.60
+
+### Patch Changes
+
+- [`cae5f8e`](https://github.com/tim-smart/lalph/commit/cae5f8e243c191925dad0be86272a6c3a80ff669) Thanks [@tim-smart](https://github.com/tim-smart)! - log no work if only 1 fiber (the current one)
+
+## 0.1.59
+
+### Patch Changes
+
+- [`38322be`](https://github.com/tim-smart/lalph/commit/38322be381e750c7fc588598fb6ffb06dd038e14) Thanks [@tim-smart](https://github.com/tim-smart)! - add cli command prefixing to support docker sandbox
+
+- [`9bb4822`](https://github.com/tim-smart/lalph/commit/9bb4822ea3c25cc8a51d40095d5aaa4028fb4871) Thanks [@tim-smart](https://github.com/tim-smart)! - use string for command prefix
+
+## 0.1.58
+
+### Patch Changes
+
+- [`f5c4e2f`](https://github.com/tim-smart/lalph/commit/f5c4e2f8ee839492a0373b7c47dba35a18e597a9) Thanks [@tim-smart](https://github.com/tim-smart)! - only log no work when nothing is running
+
+- [`c5b1349`](https://github.com/tim-smart/lalph/commit/c5b134995d395fd3162a8e7088e1eadb8af242c1) Thanks [@tim-smart](https://github.com/tim-smart)! - hide completed projects
+
+- [`f9f35a6`](https://github.com/tim-smart/lalph/commit/f9f35a6dcd473dc137ad6f03bac18e6dc2213fa4) Thanks [@tim-smart](https://github.com/tim-smart)! - improve task reversion
+
+## 0.1.57
+
+### Patch Changes
+
+- [`c7111ed`](https://github.com/tim-smart/lalph/commit/c7111eddf627af082c787fe5d6e4cdfef0b8f517) Thanks [@tim-smart](https://github.com/tim-smart)! - use the new linear client for listing issues
+
+## 0.1.56
+
+### Patch Changes
+
+- [`186db6f`](https://github.com/tim-smart/lalph/commit/186db6f3ec886510710f393d789345309b99c6d5) Thanks [@tim-smart](https://github.com/tim-smart)! - remove complete field
+
+- [`b2b756e`](https://github.com/tim-smart/lalph/commit/b2b756ea8ad3b9a1ec680d74d795724d73fecb61) Thanks [@tim-smart](https://github.com/tim-smart)! - fix cwd for some clis
+
+## 0.1.55
+
+### Patch Changes
+
+- [`7e5dade`](https://github.com/tim-smart/lalph/commit/7e5dade61586d44b8a5f3f7e96542ce567a5a165) Thanks [@tim-smart](https://github.com/tim-smart)! - update CliAgent command model
+
+- [`c5f950e`](https://github.com/tim-smart/lalph/commit/c5f950e1dc5fc6c536b3e6adb968fa5dc37a3ecb) Thanks [@tim-smart](https://github.com/tim-smart)! - add codex
+
+## 0.1.54
+
+### Patch Changes
+
+- [`74af0ec`](https://github.com/tim-smart/lalph/commit/74af0ecaba48b96676020220d24e812bc6a1b8e9) Thanks [@tim-smart](https://github.com/tim-smart)! - existing worktree handling for edit command
+
+## 0.1.53
+
+### Patch Changes
+
+- [`cba473b`](https://github.com/tim-smart/lalph/commit/cba473b1535919ea1a36bbd49400e2badf1cf2b2) Thanks [@tim-smart](https://github.com/tim-smart)! - --dangerously-skip-permissions
+
+## 0.1.52
+
+### Patch Changes
+
+- [#103](https://github.com/tim-smart/lalph/pull/103) [`8cd77be`](https://github.com/tim-smart/lalph/commit/8cd77be1933e2ef5fe1bbf73fb2a1f8e50c00b1e) Thanks [@tim-smart](https://github.com/tim-smart)! - add shell command
+
+## 0.1.51
+
+### Patch Changes
+
+- [`45a6391`](https://github.com/tim-smart/lalph/commit/45a63914a5ccdbe4f1e1ece84c943270b5cfe9cb) Thanks [@tim-smart](https://github.com/tim-smart)! - move auto merge to issue labels
+
+## 0.1.50
+
+### Patch Changes
+
+- [`1616e01`](https://github.com/tim-smart/lalph/commit/1616e0126f0fca8c30145325ac66a8d6860c2c97) Thanks [@tim-smart](https://github.com/tim-smart)! - remove console.log
+
+## 0.1.49
+
+### Patch Changes
+
+- [`e45b53f`](https://github.com/tim-smart/lalph/commit/e45b53f7c278ceb372a1ce3b9d967482a11d57f4) Thanks [@tim-smart](https://github.com/tim-smart)! - allow configuring using env vars
+
+## 0.1.48
+
+### Patch Changes
+
+- [`d21e35d`](https://github.com/tim-smart/lalph/commit/d21e35dbe09ebcb3c53912d2f12093c23d76890f) Thanks [@tim-smart](https://github.com/tim-smart)! - allow setting target branch for plan mode
+
+## 0.1.47
+
+### Patch Changes
+
+- [`d759f8d`](https://github.com/tim-smart/lalph/commit/d759f8de7ad61bb78e98a59d194b851cba8d2057) Thanks [@tim-smart](https://github.com/tim-smart)! - load edit mode without worktree
+
+## 0.1.46
+
+### Patch Changes
+
+- [`17b918d`](https://github.com/tim-smart/lalph/commit/17b918d61a05076391caf4a7c9e3c2e25c93a857) Thanks [@tim-smart](https://github.com/tim-smart)! - implement two-way prd sync
+
+## 0.1.45
+
+### Patch Changes
+
+- [`1017d39`](https://github.com/tim-smart/lalph/commit/1017d39f7477f21a4a6ae07349813d1500ca5e0f) Thanks [@tim-smart](https://github.com/tim-smart)! - pass specs directory to prompt
+
+## 0.1.44
+
+### Patch Changes
+
+- [`de907fd`](https://github.com/tim-smart/lalph/commit/de907fdf9fa9faeaa1e803dd31dded80b54ba42c) Thanks [@tim-smart](https://github.com/tim-smart)! - build issue source after reset
+
+## 0.1.43
+
+### Patch Changes
+
+- [`2148773`](https://github.com/tim-smart/lalph/commit/2148773192deba72d319aaeb94cee6743f052763) Thanks [@tim-smart](https://github.com/tim-smart)! - fix token managers not setting current token
+
+## 0.1.42
+
+### Patch Changes
+
+- [`709c677`](https://github.com/tim-smart/lalph/commit/709c677e36d8e329c7c18a57f3f763f6dda09eae) Thanks [@tim-smart](https://github.com/tim-smart)! - add cli agent env to planner
+
+- [`129255b`](https://github.com/tim-smart/lalph/commit/129255b770ee771504f87b09e40009fa2aacf63b) Thanks [@tim-smart](https://github.com/tim-smart)! - less questions
+
+- [#90](https://github.com/tim-smart/lalph/pull/90) [`e8c8616`](https://github.com/tim-smart/lalph/commit/e8c86169db6039185c99c7b97ecbfc7e17d233e4) Thanks [@tim-smart](https://github.com/tim-smart)! - add reset option to the main run command
+
+## 0.1.41
+
+### Patch Changes
+
+- [`5a5ea69`](https://github.com/tim-smart/lalph/commit/5a5ea69a504689a861e1dac19388f94628027aba) Thanks [@tim-smart](https://github.com/tim-smart)! - more prompt changes
+
+## 0.1.40
+
+### Patch Changes
+
+- [`8ea1fed`](https://github.com/tim-smart/lalph/commit/8ea1fed789f6dcfc88a212a0f3d8b92c459ed6cd) Thanks [@tim-smart](https://github.com/tim-smart)! - more prompt tweaks
+
+## 0.1.39
+
+### Patch Changes
+
+- [`af58d30`](https://github.com/tim-smart/lalph/commit/af58d30ef4743e1b107daa21836814f5a293afda) Thanks [@tim-smart](https://github.com/tim-smart)! - add option to reset source before planning
+
+- [`f36de86`](https://github.com/tim-smart/lalph/commit/f36de864072606c11d570654b987e79b93c2233f) Thanks [@tim-smart](https://github.com/tim-smart)! - prompt tweaks
+
+## 0.1.38
+
+### Patch Changes
+
+- [`7d2174e`](https://github.com/tim-smart/lalph/commit/7d2174e921fb6b60320aed01831ae05e839f8f9e) Thanks [@tim-smart](https://github.com/tim-smart)! - clarify research tasks further
+
+## 0.1.37
+
+### Patch Changes
+
+- [`5b28733`](https://github.com/tim-smart/lalph/commit/5b28733bbb267aab4aede500aa261578b619b6bf) Thanks [@tim-smart](https://github.com/tim-smart)! - clean up branches
+
+## 0.1.36
+
+### Patch Changes
+
+- [`af004cd`](https://github.com/tim-smart/lalph/commit/af004cd64f569a0641bf123c29d6e7a87a543421) Thanks [@tim-smart](https://github.com/tim-smart)! - add command to create an issue
+
+## 0.1.35
+
+### Patch Changes
+
+- [`4d12ae0`](https://github.com/tim-smart/lalph/commit/4d12ae01d35c8e858aa511062b9ba39427dc7da3) Thanks [@tim-smart](https://github.com/tim-smart)! - change worktree setup script path
+
+## 0.1.34
+
+### Patch Changes
+
+- [`8b210f7`](https://github.com/tim-smart/lalph/commit/8b210f77f9db8b925759a8e76465c3ecd896efdc) Thanks [@tim-smart](https://github.com/tim-smart)! - create specs in plan mode
+
+## 0.1.33
+
+### Patch Changes
+
+- [`069252d`](https://github.com/tim-smart/lalph/commit/069252dc6ae368daae1b18d46b2f77be8944a446) Thanks [@tim-smart](https://github.com/tim-smart)! - adjust rebase instruction
+
+- [`7fe2625`](https://github.com/tim-smart/lalph/commit/7fe26259892a422ac8e16b3b57fb70d5facc624a) Thanks [@tim-smart](https://github.com/tim-smart)! - improve has more work check
+
+## 0.1.32
+
+### Patch Changes
+
+- [`bfadddb`](https://github.com/tim-smart/lalph/commit/bfadddb6c7176778e6f25cc7312fb6adbfa0f390) Thanks [@tim-smart](https://github.com/tim-smart)! - more context gathering steering
+
+## 0.1.31
+
+### Patch Changes
+
+- [`8e91745`](https://github.com/tim-smart/lalph/commit/8e91745f06f34a139075342fc1bb7a07bcb38d70) Thanks [@tim-smart](https://github.com/tim-smart)! - try record info as it is discovered
+
+## 0.1.30
+
+### Patch Changes
+
+- [`93f0406`](https://github.com/tim-smart/lalph/commit/93f04062887ec9ee34fa78daac45ff0f4d08e0fc) Thanks [@tim-smart](https://github.com/tim-smart)! - try use task description as a learning tool
+
+## 0.1.29
+
+### Patch Changes
+
+- [`1806a32`](https://github.com/tim-smart/lalph/commit/1806a3216205a05253fd5f969f8a7aa88744c145) Thanks [@tim-smart](https://github.com/tim-smart)! - increase default max minutes to 90
+
+## 0.1.28
+
+### Patch Changes
+
+- [`d125487`](https://github.com/tim-smart/lalph/commit/d125487d4b767df8a67258b0e71c40f6ee141c51) Thanks [@tim-smart](https://github.com/tim-smart)! - tweak timeout prompt
+
+- [`98aa91c`](https://github.com/tim-smart/lalph/commit/98aa91cb53b78a3dcd82452c07e6f18ad860f1a5) Thanks [@tim-smart](https://github.com/tim-smart)! - tweak "small task" wording
+
+## 0.1.27
+
+### Patch Changes
+
+- [`011a07b`](https://github.com/tim-smart/lalph/commit/011a07bc4bc4a742fdd9d0068f8794c82c942810) Thanks [@tim-smart](https://github.com/tim-smart)! - break up task if it times out
+
+## 0.1.26
+
+### Patch Changes
+
+- [`9adeed7`](https://github.com/tim-smart/lalph/commit/9adeed7c476a32af6f6f42e8cb4d38ee94bb4c3f) Thanks [@tim-smart](https://github.com/tim-smart)! - fix target branch checkout
+
+## 0.1.25
+
+### Patch Changes
+
+- [`48bfef8`](https://github.com/tim-smart/lalph/commit/48bfef88a4fa3f744ae174fd2fd499b9806259c5) Thanks [@tim-smart](https://github.com/tim-smart)! - add opencode permissions
+
+## 0.1.24
+
+### Patch Changes
+
+- [`8810bcd`](https://github.com/tim-smart/lalph/commit/8810bcd8c07a9b566258ba30449b5bad315a008d) Thanks [@tim-smart](https://github.com/tim-smart)! - update plan mode to ask for the idea in the agent
+
+## 0.1.23
+
+### Patch Changes
+
+- [#63](https://github.com/tim-smart/lalph/pull/63) [`5c455a7`](https://github.com/tim-smart/lalph/commit/5c455a7579fd39160c7a73ff7b6dfe1802cb0bc9) Thanks [@tim-smart](https://github.com/tim-smart)! - Handle PRs that don't auto merge
+
+## 0.1.22
+
+### Patch Changes
+
+- [`5f0e86e`](https://github.com/tim-smart/lalph/commit/5f0e86e8d9fd7a08468cd5ef682387a0df816c0e) Thanks [@tim-smart](https://github.com/tim-smart)! - prevent task update race conditions
+
+## 0.1.21
+
+### Patch Changes
+
+- [`893ae5b`](https://github.com/tim-smart/lalph/commit/893ae5bf9e21d794da106da3dc3df2073635a38a) Thanks [@tim-smart](https://github.com/tim-smart)! - fix ChosenTask schema
+
+## 0.1.20
+
+### Patch Changes
+
+- [`0e0aa36`](https://github.com/tim-smart/lalph/commit/0e0aa36b3d0b4e96e3e3dac3379c0084e6679039) Thanks [@tim-smart](https://github.com/tim-smart)! - allow setting the target/base branch for PRs
+
+- [`46e9602`](https://github.com/tim-smart/lalph/commit/46e9602882c1647032bd3f4dd0e442da372b1774) Thanks [@tim-smart](https://github.com/tim-smart)! - use literals for task states
+
+## 0.1.19
+
+### Patch Changes
+
+- [`bcfb331`](https://github.com/tim-smart/lalph/commit/bcfb331337389f9e17650f61f2e9434a1b281e62) Thanks [@tim-smart](https://github.com/tim-smart)! - note that prd.yml updates should happen after PR updates
+
+## 0.1.18
+
+### Patch Changes
+
+- [`6ca78fc`](https://github.com/tim-smart/lalph/commit/6ca78fcda68a7a0ace0bc38e0ff3624cfecdaea7) Thanks [@tim-smart](https://github.com/tim-smart)! - Filter linear completed issues for last 3 days
+
+- [`b25d665`](https://github.com/tim-smart/lalph/commit/b25d665d84c8d1c5f6e48dac64906f6f5ea0e822) Thanks [@tim-smart](https://github.com/tim-smart)! - split task choosing to reduce context usage
+
+## 0.1.17
+
+### Patch Changes
+
+- [`bb1006a`](https://github.com/tim-smart/lalph/commit/bb1006a786cb0c4024e1e13545bd64229891d332) Thanks [@tim-smart](https://github.com/tim-smart)! - use yaml for prd file
+
+## 0.1.16
+
+### Patch Changes
+
+- [`5ee9e8d`](https://github.com/tim-smart/lalph/commit/5ee9e8d8c50ffad2d8ed27b8c28b77f60cff2bbd) Thanks [@tim-smart](https://github.com/tim-smart)! - permission to commit
+
+## 0.1.15
+
+### Patch Changes
+
+- [`02e0fcc`](https://github.com/tim-smart/lalph/commit/02e0fcc4840b0730cbcb38b00f198b3f924e0d30) Thanks [@tim-smart](https://github.com/tim-smart)! - use HEAD as the base for new branches
+
+## 0.1.14
+
+### Patch Changes
+
+- [`32e5262`](https://github.com/tim-smart/lalph/commit/32e52627bbf4cf373b8cd227c12ac4f0b9a80293) Thanks [@tim-smart](https://github.com/tim-smart)! - further clarify instruction permissions
+
+## 0.1.13
+
+### Patch Changes
+
+- [`6558537`](https://github.com/tim-smart/lalph/commit/655853723708fe87d8f84c7ee0cee2b56f053de9) Thanks [@tim-smart](https://github.com/tim-smart)! - ensure plan file exists
+
+## 0.1.12
+
+### Patch Changes
+
+- [`0cbe2c8`](https://github.com/tim-smart/lalph/commit/0cbe2c8ff7d002f20f89d0bcaa362adaf1bf50ec) Thanks [@tim-smart](https://github.com/tim-smart)! - don't use npx
+
+## 0.1.11
+
+### Patch Changes
+
+- [`e97aa38`](https://github.com/tim-smart/lalph/commit/e97aa3803eeea4984edafc2f7529a1ae2f9ae839) Thanks [@tim-smart](https://github.com/tim-smart)! - support token rotation
+
+## 0.1.10
+
+### Patch Changes
+
+- [`2f9d35e`](https://github.com/tim-smart/lalph/commit/2f9d35e71cb121e80ee2f37f18239143f03337d5) Thanks [@tim-smart](https://github.com/tim-smart)! - check for work before creating workspace
+
+- [`2dd08f1`](https://github.com/tim-smart/lalph/commit/2dd08f1ca281c911ff834ca54caba037e40e337c) Thanks [@tim-smart](https://github.com/tim-smart)! - add Github issue source
+
+- [`02627ef`](https://github.com/tim-smart/lalph/commit/02627ef90c3871f48158369f2c1b56a15c91dcaf) Thanks [@tim-smart](https://github.com/tim-smart)! - abstract the IssueSource
+
+- [`3a54608`](https://github.com/tim-smart/lalph/commit/3a546087d934cdab2085e581202c4a4c64dc7af7) Thanks [@tim-smart](https://github.com/tim-smart)! - add stall timeouts
+
+- [#32](https://github.com/tim-smart/lalph/pull/32) [`2c88c25`](https://github.com/tim-smart/lalph/commit/2c88c2571ff96e390c43bb48772040ccdd12313d) Thanks [@tim-smart](https://github.com/tim-smart)! - sync GitHub issue dependencies on creation
+
+- [#38](https://github.com/tim-smart/lalph/pull/38) [`641ed74`](https://github.com/tim-smart/lalph/commit/641ed744977d6ed05e037e4772d78344c43b8afd) Thanks [@tim-smart](https://github.com/tim-smart)! - Sync Linear blocked-by relations after creating an issue.
+
+- [`3a54608`](https://github.com/tim-smart/lalph/commit/3a546087d934cdab2085e581202c4a4c64dc7af7) Thanks [@tim-smart](https://github.com/tim-smart)! - add issue blockers
+
+## 0.1.9
+
+### Patch Changes
+
+- [`83c7cd9`](https://github.com/tim-smart/lalph/commit/83c7cd9fbcbddd83a8f5c7f1ae85cf15355c3a1c) Thanks [@tim-smart](https://github.com/tim-smart)! - prompt tweaks
+
+- [`462389a`](https://github.com/tim-smart/lalph/commit/462389a4d068ac341ac56c8f5bf49569f4b527b8) Thanks [@tim-smart](https://github.com/tim-smart)! - rename project command
+
+- [`142f597`](https://github.com/tim-smart/lalph/commit/142f597ed4bc2a481a0a0a3f23af4a5d142aabdc) Thanks [@tim-smart](https://github.com/tim-smart)! - fix NoMoreWork error
+
+## 0.1.8
+
+### Patch Changes
+
+- [`5e4bb2b`](https://github.com/tim-smart/lalph/commit/5e4bb2beebaab018aa94cb73df9b6eca55d38ea4) Thanks [@tim-smart](https://github.com/tim-smart)! - revert tasks todo if incomplete
+
+- [`94f6d80`](https://github.com/tim-smart/lalph/commit/94f6d803aab715409f732e59bca7e8b516548eef) Thanks [@tim-smart](https://github.com/tim-smart)! - add plan mode
+
+- [`84e0b9b`](https://github.com/tim-smart/lalph/commit/84e0b9b5c4298cbb7167399ba9b55422b2ba3c7a) Thanks [@tim-smart](https://github.com/tim-smart)! - add github pr auto-merge
+
+- [`c298986`](https://github.com/tim-smart/lalph/commit/c2989866ae73ebf36cceb87bebdf49cd98fe3a4e) Thanks [@tim-smart](https://github.com/tim-smart)! - only show issues assigned to user
+
+## 0.1.7
+
+### Patch Changes
+
+- [`63b7a31`](https://github.com/tim-smart/lalph/commit/63b7a316673213b71cd34c165346ba14a5cc5eac) Thanks [@tim-smart](https://github.com/tim-smart)! - improve error handling
+
+- [`63b7a31`](https://github.com/tim-smart/lalph/commit/63b7a316673213b71cd34c165346ba14a5cc5eac) Thanks [@tim-smart](https://github.com/tim-smart)! - update efefct
+
+## 0.1.6
+
+### Patch Changes
+
+- [`fe3b1c0`](https://github.com/tim-smart/lalph/commit/fe3b1c0c3a8899d4af6592dce0737c64feab85ea) Thanks [@tim-smart](https://github.com/tim-smart)! - prompt tweaks
+
+## 0.1.5
+
+### Patch Changes
+
+- [`111b706`](https://github.com/tim-smart/lalph/commit/111b706db9839ccaf956425210bc4858d0c90b0a) Thanks [@tim-smart](https://github.com/tim-smart)! - make sure task status is updated early
+
+## 0.1.4
+
+### Patch Changes
+
+- [`552b7f4`](https://github.com/tim-smart/lalph/commit/552b7f4e23c9c1c5f51323f3cc228109431ae3e3) Thanks [@tim-smart](https://github.com/tim-smart)! - ensure PROGRESS.md exists
+
+## 0.1.3
+
+### Patch Changes
+
+- [#14](https://github.com/tim-smart/lalph/pull/14) [`fa5d1ed`](https://github.com/tim-smart/lalph/commit/fa5d1ed58c28d8b6a689420f2e0268e6eaa93406) Thanks [@tim-smart](https://github.com/tim-smart)! - pull before worktree creation
+
+## 0.1.2
+
+### Patch Changes
+
+- [`b8f613b`](https://github.com/tim-smart/lalph/commit/b8f613b118aed461d9ffee3c50d2840ce019f5ab) Thanks [@tim-smart](https://github.com/tim-smart)! - concurrency option
+
+## 0.1.1
+
+### Patch Changes
+
+- [`1cbef36`](https://github.com/tim-smart/lalph/commit/1cbef36e48978a114477a8d30be392dfa09216b7) Thanks [@tim-smart](https://github.com/tim-smart)! - prompt tweaks
+
+## 0.1.0
+
+### Minor Changes
+
+- [`2076a32`](https://github.com/tim-smart/lalph/commit/2076a32c6fd538ac16f556fd220f2caaf00ad4ef) Thanks [@tim-smart](https://github.com/tim-smart)! - initial version

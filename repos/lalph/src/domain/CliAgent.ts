@@ -1,0 +1,259 @@
+import {
+  Data,
+  Duration,
+  PlatformError,
+  Schema,
+  SchemaTransformation,
+  Stream,
+} from "effect"
+import { ChildProcess } from "effect/unstable/process"
+import { claudeOutputTransformer } from "../CliAgent/claude.ts"
+
+export class CliAgent<const Id extends string> extends Data.Class<{
+  id: Id
+  name: string
+  outputTransformer?: OutputTransformer | undefined
+  command?: (options: {
+    readonly prompt: string
+    readonly prdFilePath: string | undefined
+    readonly extraArgs: ReadonlyArray<string>
+  }) => ChildProcess.Command
+  commandPlan: (options: {
+    readonly prompt: string
+    readonly prdFilePath: string | undefined
+    readonly dangerous: boolean
+  }) => ChildProcess.Command
+}> {}
+
+export type OutputTransformer = (
+  stream: Stream.Stream<string, PlatformError.PlatformError>,
+) => Stream.Stream<string, PlatformError.PlatformError>
+
+const escapeLeadingHyphen = (text: string) => {
+  if (text.startsWith("-")) return `\\${text}`
+  return text
+}
+
+const claudeInterruptOptions = {
+  stdin: "ignore",
+  killSignal: "SIGINT",
+  forceKillAfter: Duration.seconds(2),
+} as const
+
+const clanka = new CliAgent({
+  id: "clanka",
+  name: "clanka",
+  commandPlan: ({ prompt, prdFilePath, dangerous }) =>
+    ChildProcess.make(
+      "clanka",
+      [
+        "--prompt",
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : prompt,
+      ],
+      {
+        extendEnv: true,
+        ...(dangerous
+          ? {
+              env: {
+                OPENCODE_PERMISSION: '{"*":"allow"}',
+              },
+            }
+          : {}),
+        stdout: "inherit",
+        stderr: "inherit",
+        stdin: "inherit",
+      },
+    ),
+})
+
+const opencode = new CliAgent({
+  id: "opencode",
+  name: "opencode",
+  command: ({ prompt, prdFilePath, extraArgs }) =>
+    ChildProcess.make(
+      "opencode",
+      [
+        "run",
+        escapeLeadingHyphen(prompt),
+        "--thinking",
+        ...extraArgs,
+        ...(prdFilePath ? ["-f", prdFilePath] : []),
+      ],
+      {
+        extendEnv: true,
+        env: {
+          OPENCODE_PERMISSION: '{"*":"allow", "question":"deny"}',
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+        stdin: "inherit",
+      },
+    ),
+  commandPlan: ({ prompt, prdFilePath, dangerous }) =>
+    ChildProcess.make(
+      "opencode",
+      [
+        "--prompt",
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : prompt,
+      ],
+      {
+        extendEnv: true,
+        ...(dangerous
+          ? {
+              env: {
+                OPENCODE_PERMISSION: '{"*":"allow"}',
+              },
+            }
+          : {}),
+        stdout: "inherit",
+        stderr: "inherit",
+        stdin: "inherit",
+      },
+    ),
+})
+
+const claude = new CliAgent({
+  id: "claude",
+  name: "Claude Code",
+  command: ({ prompt, prdFilePath, extraArgs }) =>
+    ChildProcess.make(
+      "claude",
+      [
+        "--dangerously-skip-permissions",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--disallowed-tools",
+        "AskUserQuestion",
+        ...extraArgs,
+        "--",
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : escapeLeadingHyphen(prompt),
+      ],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+        ...claudeInterruptOptions,
+      },
+    ),
+  outputTransformer: claudeOutputTransformer,
+  commandPlan: ({ prompt, prdFilePath, dangerous }) =>
+    ChildProcess.make(
+      "claude",
+      [
+        ...(dangerous ? ["--dangerously-skip-permissions"] : []),
+        `@${prdFilePath}
+
+${prompt}`,
+      ],
+      {
+        stdout: "inherit",
+        stderr: "inherit",
+        ...claudeInterruptOptions,
+      },
+    ),
+})
+
+const codex = new CliAgent({
+  id: "codex",
+  name: "Codex CLI",
+  command: ({ prompt, prdFilePath, extraArgs }) =>
+    ChildProcess.make(
+      "codex",
+      [
+        "exec",
+        "--dangerously-bypass-approvals-and-sandbox",
+        ...extraArgs,
+        "--",
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : prompt,
+      ],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+        stdin: "inherit",
+        env: { FORCE_COLOR: "1" },
+        extendEnv: true,
+      },
+    ),
+  commandPlan: ({ prompt, prdFilePath, dangerous }) =>
+    ChildProcess.make(
+      "codex",
+      [
+        ...(dangerous ? ["--dangerously-bypass-approvals-and-sandbox"] : []),
+        "--",
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : prompt,
+      ],
+      {
+        stdout: "inherit",
+        stderr: "inherit",
+        stdin: "inherit",
+      },
+    ),
+})
+
+const amp = new CliAgent({
+  id: "amp",
+  name: "amp",
+  command: ({ prompt, prdFilePath, extraArgs }) =>
+    ChildProcess.make(
+      "amp",
+      [
+        "--dangerously-allow-all",
+        "--stream-json-thinking",
+        ...extraArgs,
+        prdFilePath
+          ? `@${prdFilePath}
+
+${prompt}`
+          : escapeLeadingHyphen(prompt),
+      ],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+        stdin: "inherit",
+      },
+    ),
+  commandPlan: () =>
+    ChildProcess.make({
+      stdout: "inherit",
+      stderr: "inherit",
+      stdin: "inherit",
+    })`echo ${"Plan mode is not supported for amp."}`,
+})
+
+export const allCliAgents = [clanka, opencode, claude, codex, amp] as const
+export type AnyCliAgent = (typeof allCliAgents)[number]
+
+export const CliAgentFromId = Schema.Literals(
+  allCliAgents.map((agent) => agent.id),
+).pipe(
+  Schema.decodeTo(
+    Schema.declare((u: unknown): u is AnyCliAgent =>
+      // oxlint-disable-next-line typescript/no-explicit-any
+      allCliAgents.includes(u as any),
+    ),
+    SchemaTransformation.transform({
+      decode: (id) => allCliAgents.find((agent) => agent.id === id)!,
+      encode: (agent) => agent.id,
+    }),
+  ),
+)

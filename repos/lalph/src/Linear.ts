@@ -1,0 +1,906 @@
+import {
+  Effect,
+  Stream,
+  Layer,
+  Schema,
+  Context,
+  Option,
+  RcMap,
+  DateTime,
+  pipe,
+  Array,
+  Cache,
+  Duration,
+} from "effect"
+import { Connection, IssueRelationType, LinearClient } from "@linear/sdk"
+import { TokenManager } from "./Linear/TokenManager.ts"
+import { Prompt } from "effect/unstable/cli"
+import { CurrentProjectId, ProjectSetting, Settings } from "./Settings.ts"
+import { IssueSource, IssueSourceError } from "./IssueSource.ts"
+import { PrdIssue } from "./domain/PrdIssue.ts"
+import {
+  LinearIssueData,
+  LinearIssuesData,
+  State,
+} from "./domain/LinearIssues.ts"
+import { Reactivity } from "effect/unstable/reactivity"
+import type { ProjectId } from "./domain/Project.ts"
+import { getPresetsWithMetadata } from "./Presets.ts"
+import type { CliAgentPreset } from "./domain/CliAgentPreset.ts"
+import { Persistable, PersistedCache } from "effect/unstable/persistence"
+import { layerPersistence } from "./Persistence.ts"
+
+class Linear extends Context.Service<Linear>()("lalph/Linear", {
+  make: Effect.gen(function* () {
+    const tokens = yield* TokenManager
+    const clients = yield* RcMap.make({
+      lookup: (token: string) =>
+        Effect.succeed(new LinearClient({ accessToken: token })),
+      idleTimeToLive: "1 minute",
+    })
+    const getClient = tokens.get.pipe(
+      Effect.flatMap(({ token }) => RcMap.get(clients, token)),
+      Effect.mapError((cause) => new LinearError({ cause })),
+    )
+
+    const use = <A>(
+      f: (client: LinearClient) => Promise<A>,
+    ): Effect.Effect<A, LinearError> =>
+      getClient.pipe(
+        Effect.flatMap((client) =>
+          Effect.tryPromise({
+            try: () => f(client),
+            catch: (cause) => new LinearError({ cause }),
+          }),
+        ),
+        Effect.scoped,
+      )
+    const gql = <S extends Schema.Top>(options: {
+      readonly query: string
+      readonly variables?: Record<string, unknown>
+      readonly schema: S
+    }) => {
+      const decode: (
+        input: unknown,
+      ) => Effect.Effect<S["Type"], Schema.SchemaError, S["DecodingServices"]> =
+        Schema.decodeUnknownEffect(Schema.toCodecJson(options.schema))
+      return use((c) =>
+        c.client.rawRequest(options.query, options.variables),
+      ).pipe(Effect.flatMap((r) => decode(r.data)))
+    }
+
+    const stream = <A>(f: (client: LinearClient) => Promise<Connection<A>>) =>
+      Stream.paginate(
+        null as null | Connection<A>,
+        Effect.fnUntraced(function* (prev) {
+          const connection = yield* prev
+            ? Effect.tryPromise({
+                try: () => prev.fetchNext(),
+                catch: (cause) => new LinearError({ cause }),
+              })
+            : use(f)
+
+          return [
+            connection.nodes,
+            Option.some(connection).pipe(
+              Option.filter((c) => c.pageInfo.hasNextPage),
+            ),
+          ]
+        }),
+      )
+
+    const cache = yield* PersistedCache.make(
+      (_: LinearState) => {
+        const projects = Stream.runCollect(
+          stream((client) =>
+            client.projects({
+              filter: {
+                status: {
+                  type: { nin: ["canceled", "completed"] },
+                },
+              },
+            }),
+          ).pipe(
+            Stream.mapEffect(
+              Effect.fnUntraced(function* (project) {
+                const teams = yield* use(() => project.teams({ first: 100 }))
+                return {
+                  ...project,
+                  teams: teams.nodes,
+                }
+              }),
+            ),
+          ),
+        )
+        const labels = Stream.runCollect(
+          stream((client) => client.issueLabels()),
+        )
+        const states = Stream.runCollect(
+          stream((client) => client.workflowStates()),
+        )
+        const viewer = use((client) => client.viewer)
+        return Effect.all(
+          {
+            projects,
+            labels,
+            states,
+            viewer,
+          },
+          { concurrency: "unbounded" },
+        ).pipe(Effect.orDie)
+      },
+      {
+        storeId: "linear",
+        timeToLive: (_) => Duration.infinity,
+      },
+    )
+    const issues = (options: {
+      readonly labelId: Option.Option<string>
+      readonly projectId: string
+    }) =>
+      options.labelId.pipe(
+        Option.match({
+          onNone: () =>
+            gql({
+              query: allIssuesNoLabelQuery,
+              variables: {
+                projectId: options.projectId,
+              },
+              schema: LinearIssuesData,
+            }),
+          onSome: (labelId) =>
+            gql({
+              query: allIssuesQuery,
+              variables: {
+                projectId: options.projectId,
+                labelId,
+              },
+              schema: LinearIssuesData,
+            }),
+        }),
+        Effect.map((data) => data.issues.nodes),
+      )
+    const issueById = (id: string) =>
+      gql({
+        query: issueByIdQuery,
+        variables: { id },
+        schema: LinearIssueData,
+      }).pipe(Effect.map((data) => data.issue))
+
+    return {
+      use,
+      stream,
+      getState: cache.get(new LinearState()),
+      invalidate: cache.invalidate(new LinearState()),
+      issues,
+      issueById,
+    } as const
+  }),
+}) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide([TokenManager.layer, layerPersistence]),
+  )
+}
+
+export const LinearIssueSource = Layer.effect(
+  IssueSource,
+  Effect.gen(function* () {
+    const linear = yield* Linear
+    let state = yield* linear.getState
+
+    const projectSettings = yield* Cache.make({
+      lookup: Effect.fnUntraced(
+        function* (_projectId: ProjectId) {
+          const project = yield* getOrSelectProject
+          const teamId = yield* getOrSelectTeamId(project)
+          const labelId = yield* getOrSelectLabel
+          const autoMergeLabelId = yield* getOrSelectAutoMergeLabel
+          return { project, teamId, labelId, autoMergeLabelId } as const
+        },
+        Effect.orDie,
+        (effect, projectId) =>
+          Effect.provideService(effect, CurrentProjectId, projectId),
+      ),
+      capacity: Number.POSITIVE_INFINITY,
+    })
+
+    const presets = yield* getPresetsWithMetadata("linear", PresetMetadata)
+
+    // Map of linear identifier to issue id
+    const identifierMap = new Map<string, string>()
+    const presetMap = new Map<string, CliAgentPreset>()
+
+    const findState = (
+      teamId: string,
+      type: string,
+      names: Array<string> = [],
+      fallbackType = type,
+    ) => {
+      const filtered = state.states.filter((s) => {
+        if (names.length === 0) return s.type === type
+        const name = s.name.toLowerCase()
+        return s.type === type && names.some((n) => name.includes(n))
+      })
+      const withTeamId = filtered.filter((s) => s.teamId === teamId)
+      if (withTeamId.length > 0) return withTeamId[0]!
+      const withoutTeamId = filtered.filter((s) => s.teamId === undefined)
+      if (withoutTeamId.length > 0) return withoutTeamId[0]!
+      return state.states.find((s) => s.type === fallbackType)!
+    }
+
+    const statesForTeamId = memoize((teamId: string) => ({
+      backlog: findState(teamId, "backlog", ["backlog"]),
+      todo: findState(teamId, "unstarted", ["todo", "unstarted"]),
+      inProgress: findState(teamId, "started", ["progress", "started"]),
+      inReview: findState(teamId, "started", ["review"], "completed"),
+      done: findState(teamId, "completed"),
+      canceled: findState(teamId, "canceled"),
+    }))
+
+    const linearStateToPrdState = (
+      state: State,
+      teamId: string,
+    ): PrdIssue["state"] => {
+      const states = statesForTeamId(teamId)
+      switch (state.id) {
+        case states.backlog.id:
+          return "backlog"
+        case states.todo.id:
+          return "todo"
+        case states.inProgress.id:
+          return "in-progress"
+        case states.inReview.id:
+          return "in-review"
+        case states.done.id:
+          return "done"
+        default:
+          if (state.type === "backlog") return "backlog"
+          if (state.type === "unstarted") return "todo"
+          if (state.type === "started") return "in-progress"
+          if (state.type === "completed") return "done"
+          return "backlog"
+      }
+    }
+    const prdStateToLinearStateId = (
+      state: PrdIssue["state"],
+      teamId: string,
+    ): string => {
+      const states = statesForTeamId(teamId)
+      switch (state) {
+        case "backlog":
+          return states.backlog.id
+        case "todo":
+          return states.todo.id
+        case "in-progress":
+          return states.inProgress.id
+        case "in-review":
+          return states.inReview.id
+        case "done":
+          return states.done.id
+      }
+    }
+
+    const issues = ({
+      labelId,
+      projectId,
+      teamId,
+      autoMergeLabelId,
+    }: {
+      readonly labelId: Option.Option<string>
+      readonly projectId: string
+      readonly teamId: string
+      readonly autoMergeLabelId: Option.Option<string>
+    }) =>
+      linear.issues({ labelId, projectId }).pipe(
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+        Effect.map((issues) => {
+          const threeDaysAgo = DateTime.nowUnsafe().pipe(
+            DateTime.subtract({ days: 3 }),
+          )
+          return pipe(
+            Array.filter(issues, (issue) => {
+              identifierMap.set(issue.identifier, issue.id)
+              const preset = presets.find((p) =>
+                issue.labelIds.includes(p.metadata.labelId),
+              )
+              if (preset) {
+                presetMap.set(issue.identifier, preset.preset)
+              }
+
+              const completedAt = issue.completedAt
+              if (!completedAt) return true
+              return DateTime.isGreaterThanOrEqualTo(completedAt, threeDaysAgo)
+            }),
+            Array.map(
+              (issue) =>
+                new PrdIssue({
+                  id: issue.identifier,
+                  title: issue.title,
+                  description: issue.description ?? "",
+                  priority: issue.priority,
+                  estimate: issue.estimate ?? null,
+                  state: linearStateToPrdState(issue.state, teamId),
+                  blockedBy: issue.blockedBy.map((r) => r.issue.identifier),
+                  autoMerge: autoMergeLabelId.pipe(
+                    Option.map((labelId) => issue.labelIds.includes(labelId)),
+                    Option.getOrElse(() => false),
+                  ),
+                }),
+            ),
+          )
+        }),
+      )
+
+    return yield* IssueSource.make({
+      issues: Effect.fnUntraced(function* (projectId) {
+        const settings = yield* Cache.get(projectSettings, projectId)
+        return yield* issues({
+          projectId: settings.project.id,
+          teamId: settings.teamId,
+          labelId: settings.labelId,
+          autoMergeLabelId: settings.autoMergeLabelId,
+        })
+      }),
+      createIssue: Effect.fnUntraced(
+        function* (projectId, issue) {
+          const { teamId, labelId, autoMergeLabelId, project } =
+            yield* Cache.get(projectSettings, projectId)
+          const created = yield* linear.use((c) =>
+            c.createIssue({
+              teamId,
+              projectId: project.id,
+              assigneeId: state.viewer.id,
+              labelIds: [
+                ...Option.toArray(labelId),
+                ...(issue.autoMerge ? Option.toArray(autoMergeLabelId) : []),
+              ],
+              title: issue.title,
+              description: issue.description,
+              priority: issue.priority,
+              estimate: issue.estimate,
+              stateId: prdStateToLinearStateId(issue.state, teamId),
+            }),
+          )
+          const linearIssue = yield* linear.use(() => created.issue!)
+          identifierMap.set(linearIssue.identifier, linearIssue.id)
+          if (issue.blockedBy.length > 0) {
+            yield* Effect.forEach(
+              issue.blockedBy,
+              (identifier) => {
+                const blockerIssueId = identifierMap.get(identifier)
+                if (!blockerIssueId) return Effect.void
+                return linear
+                  .use((c) =>
+                    c.createIssueRelation({
+                      issueId: blockerIssueId,
+                      relatedIssueId: linearIssue.id,
+                      type: IssueRelationType.Blocks,
+                    }),
+                  )
+                  .pipe(Effect.ignore)
+              },
+              { concurrency: 5, discard: true },
+            )
+          }
+          const url =
+            linearIssue.url ??
+            `https://linear.app/issue/${linearIssue.identifier}/`
+          return {
+            id: linearIssue.identifier,
+            url,
+          }
+        },
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+      ),
+      updateIssue: Effect.fnUntraced(
+        function* (options) {
+          const { autoMergeLabelId, teamId } = yield* Cache.get(
+            projectSettings,
+            options.projectId,
+          )
+          const issueId = identifierMap.get(options.issueId)!
+          const linearIssue = yield* linear.issueById(issueId)
+          const update: {
+            title?: string
+            description?: string
+            stateId?: string
+            labelIds: Array<string>
+          } = {
+            labelIds: linearIssue.labelIds.slice(),
+          }
+          if (options.title) {
+            update.title = options.title
+          }
+          if (options.description) {
+            update.description = options.description
+          }
+          if (options.state) {
+            update.stateId = prdStateToLinearStateId(options.state, teamId)
+          }
+          if (
+            options.autoMerge !== undefined &&
+            Option.isSome(autoMergeLabelId)
+          ) {
+            const hasLabel = update.labelIds.includes(autoMergeLabelId.value)
+            if (options.autoMerge && !hasLabel) {
+              update.labelIds.push(autoMergeLabelId.value)
+            } else if (!options.autoMerge && hasLabel) {
+              update.labelIds = update.labelIds.filter(
+                (id) => id !== autoMergeLabelId.value,
+              )
+            }
+          }
+          yield* linear.use((c) => c.updateIssue(issueId, update))
+          if (!options.blockedBy) return
+
+          const blockedBy = options.blockedBy.flatMap((identifier) => {
+            const blockerIssueId = identifierMap.get(identifier)
+            return blockerIssueId ? [blockerIssueId] : []
+          })
+
+          const existingBlockers = linearIssue.blockedBy
+
+          const toAdd = blockedBy.filter(
+            (blockerIssueId) =>
+              !existingBlockers.some((b) => b.issue.id === blockerIssueId),
+          )
+
+          const toRemove = existingBlockers.filter(
+            (relation) => !blockedBy.includes(relation.issue.id),
+          )
+
+          if (toAdd.length === 0 && toRemove.length === 0) return
+
+          yield* Effect.forEach(
+            toAdd,
+            (blockerIssueId) =>
+              linear
+                .use((c) =>
+                  c.createIssueRelation({
+                    issueId: blockerIssueId,
+                    relatedIssueId: issueId,
+                    type: IssueRelationType.Blocks,
+                  }),
+                )
+                .pipe(Effect.ignore),
+            { concurrency: 5 },
+          )
+
+          yield* Effect.forEach(
+            toRemove,
+            (relation) =>
+              linear
+                .use((c) => c.deleteIssueRelation(relation.id))
+                .pipe(Effect.ignore),
+            { concurrency: 5 },
+          )
+        },
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+      ),
+      cancelIssue: Effect.fnUntraced(
+        function* (projectId, issueId) {
+          const { teamId } = yield* Cache.get(projectSettings, projectId)
+          const states = statesForTeamId(teamId)
+          const linearIssueId = identifierMap.get(issueId)!
+          yield* linear.use((c) =>
+            c.updateIssue(linearIssueId, {
+              stateId: states.canceled.id,
+            }),
+          )
+        },
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+      ),
+      reset: Effect.gen(function* () {
+        const projectId = yield* CurrentProjectId
+        yield* Settings.setProject(selectedProjectId, Option.none())
+        yield* Settings.setProject(selectedTeamId, Option.none())
+        yield* Settings.setProject(selectedLabelId, Option.none())
+        yield* Settings.setProject(selectedAutoMergeLabelId, Option.none())
+        yield* Cache.invalidate(projectSettings, projectId)
+      }),
+      settings: (projectId) =>
+        Effect.asVoid(Cache.get(projectSettings, projectId)),
+      info: Effect.fnUntraced(
+        function* (lalphProjectId) {
+          const { teamId, labelId, autoMergeLabelId, project } =
+            yield* Cache.get(projectSettings, lalphProjectId)
+          const label = labelId
+          const autoMergeLabel = autoMergeLabelId
+          const teamName =
+            project.teams.find((team) => team.id === teamId)?.name ?? teamId
+          const resolveLabel = (value: Option.Option<string>) =>
+            Option.match(value, {
+              onNone: () => "None",
+              onSome: (id) =>
+                state.labels.find((label) => label.id === id)?.name ?? id,
+            })
+          const resolveAutoMergeLabel = (value: Option.Option<string>) =>
+            Option.match(value, {
+              onNone: () => "Disabled",
+              onSome: (id) =>
+                state.labels.find((label) => label.id === id)?.name ?? id,
+            })
+          console.log(`  Linear project: ${project.name}`)
+          console.log(`  Team: ${teamName}`)
+          console.log(`  Label filter: ${resolveLabel(label)}`)
+          console.log(
+            `  Auto-merge label: ${resolveAutoMergeLabel(autoMergeLabel)}`,
+          )
+        },
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+      ),
+      issueCliAgentPreset: (issue) =>
+        Effect.sync(() => Option.fromUndefinedOr(presetMap.get(issue.id!))),
+      updateCliAgentPreset: Effect.fnUntraced(function* (preset) {
+        state = yield* linear.invalidate.pipe(
+          Effect.andThen(linear.getState),
+          Effect.mapError((cause) => new IssueSourceError({ cause })),
+        )
+        const labelId = yield* Prompt.autoComplete({
+          message: "Select a label for this preset",
+          choices: state.labels.map((label) => ({
+            title: label.name,
+            value: label.id,
+          })),
+        })
+        return yield* preset.addMetadata("linear", PresetMetadata, {
+          labelId,
+        })
+      }),
+      cliAgentPresetInfo: Effect.fnUntraced(
+        function* (preset) {
+          const metadata = yield* preset.decodeMetadata(
+            "linear",
+            PresetMetadata,
+          )
+          if (Option.isNone(metadata)) return
+          const label = Array.findFirst(
+            state.labels,
+            (l) => l.id === metadata.value.labelId,
+          )
+          if (Option.isNone(label)) return
+          console.log(`  Label: ${label.value.name}`)
+        },
+        Effect.mapError((cause) => new IssueSourceError({ cause })),
+      ),
+      // linear api writes and reflected immediately in reads, so no-op
+      ensureInProgress: () => Effect.void,
+    })
+  }),
+).pipe(Layer.provide([Linear.layer, Reactivity.layer, Settings.layer]))
+
+export class LinearError extends Schema.ErrorClass<LinearError>(
+  "lalph/LinearError",
+)({
+  _tag: Schema.tag("LinearError"),
+  cause: Schema.Defect(),
+}) {}
+
+// Project selection
+
+const selectedProjectId = new ProjectSetting(
+  "linear.selectedProjectId",
+  Schema.String,
+)
+
+const selectProject = Effect.gen(function* () {
+  const linear = yield* Linear
+  yield* linear.invalidate
+  const state = yield* linear.getState
+
+  const choices: ReadonlyArray<{
+    readonly title: string
+    readonly value: ProjectSelection
+  }> = [
+    {
+      title: "Create new",
+      value: { _tag: "create" },
+    },
+    ...state.projects.map((project) => ({
+      title: project.name,
+      value: {
+        _tag: "existing" as const,
+        project,
+      },
+    })),
+  ]
+
+  const selected = yield* Prompt.autoComplete({
+    message: "Select a Linear project",
+    choices,
+  })
+
+  const project =
+    selected._tag === "existing" ? selected.project : yield* createLinearProject
+
+  yield* Settings.setProject(selectedProjectId, Option.some(project.id))
+
+  return project
+})
+const getOrSelectProject = Effect.gen(function* () {
+  const linear = yield* Linear
+  const state = yield* linear.getState
+  return yield* Settings.getProject(selectedProjectId).pipe(
+    Effect.flatMap(Effect.fromOption),
+    Effect.map((projectId) => state.projects.find((p) => p.id === projectId)!),
+    Effect.catch(() => selectProject),
+  )
+})
+
+type ProjectSelection =
+  | {
+      readonly _tag: "create"
+    }
+  | {
+      readonly _tag: "existing"
+      readonly project: typeof ProjectSchema.Type
+    }
+
+const createLinearProject = Effect.gen(function* () {
+  const linear = yield* Linear
+  const state = yield* linear.getState
+  const projectName = yield* Prompt.text({
+    message: "Linear project name",
+    validate(input) {
+      const name = input.trim()
+      if (name.length === 0) {
+        return Effect.fail("Project name cannot be empty")
+      }
+      if (
+        state.projects.some(
+          (project) => project.name.toLowerCase() === name.toLowerCase(),
+        )
+      ) {
+        return Effect.fail("A project with this name already exists")
+      }
+      return Effect.succeed(name)
+    },
+  })
+  const teams = yield* linear
+    .use((client) => client.teams())
+    .pipe(Effect.map((teamConnection) => teamConnection.nodes))
+  const teamId = yield* Prompt.autoComplete({
+    message: "Select a team for the new project",
+    choices: teams.map((team) => ({
+      title: team.name,
+      value: team.id,
+    })),
+  })
+  const created = yield* linear.use((client) =>
+    client.createProject({
+      name: projectName,
+      teamIds: [teamId],
+    }),
+  )
+  return ProjectSchema.make({
+    id: created.projectId!,
+    name: projectName,
+    teams: teams.filter((team) => team.id === teamId),
+  })
+})
+
+// Team selection
+
+const selectedTeamId = new ProjectSetting(
+  "linear.selectedTeamId",
+  Schema.String,
+)
+const teamSelect = Effect.fnUntraced(function* (
+  project: typeof ProjectSchema.Type,
+) {
+  const teamId = yield* Prompt.autoComplete({
+    message: "Select a team for new issues",
+    choices: project.teams.map((team) => ({
+      title: team.name,
+      value: team.id,
+    })),
+  })
+  yield* Settings.setProject(selectedTeamId, Option.some(teamId))
+  return teamId
+})
+const getOrSelectTeamId = Effect.fnUntraced(function* (
+  project: typeof ProjectSchema.Type,
+) {
+  const teamIdOption = yield* Settings.getProject(selectedTeamId)
+  if (Option.isSome(teamIdOption)) {
+    return teamIdOption.value
+  }
+  return yield* teamSelect(project)
+})
+
+// Label filter selection
+
+const selectedLabelId = new ProjectSetting(
+  "linear.selectedLabelId",
+  Schema.Option(Schema.String),
+)
+const labelIdSelect = Effect.gen(function* () {
+  const linear = yield* Linear
+  yield* linear.invalidate
+  const state = yield* linear.getState
+  const labelId = yield* Prompt.autoComplete({
+    message: "Select a label to filter issues by",
+    choices: [
+      {
+        title: "No Label",
+        value: Option.none<string>(),
+      },
+    ].concat(
+      state.labels.map((label) => ({
+        title: label.name,
+        value: Option.some(label.id),
+      })),
+    ),
+  })
+  yield* Settings.setProject(selectedLabelId, Option.some(labelId))
+  return labelId
+})
+const getOrSelectLabel = Effect.gen(function* () {
+  const labelId = yield* Settings.getProject(selectedLabelId)
+  if (Option.isSome(labelId)) {
+    return labelId.value
+  }
+  return yield* labelIdSelect
+})
+
+// Auto merge label selection
+
+const selectedAutoMergeLabelId = new ProjectSetting(
+  "linear.selectedAutoMergeLabelId",
+  Schema.Option(Schema.String),
+)
+const autoMergeLabelIdSelect = Effect.gen(function* () {
+  const linear = yield* Linear
+  const state = yield* linear.getState
+  const labelId = yield* Prompt.autoComplete({
+    message: "Select a label to mark issues for auto merge",
+    choices: [
+      {
+        title: "Disabled",
+        value: Option.none<string>(),
+      },
+    ].concat(
+      state.labels.map((label) => ({
+        title: label.name,
+        value: Option.some(label.id),
+      })),
+    ),
+  })
+  yield* Settings.setProject(selectedAutoMergeLabelId, Option.some(labelId))
+  return labelId
+})
+const getOrSelectAutoMergeLabel = Effect.gen(function* () {
+  const labelId = yield* Settings.getProject(selectedAutoMergeLabelId)
+  if (Option.isSome(labelId)) {
+    return labelId.value
+  }
+  return yield* autoMergeLabelIdSelect
+})
+
+// preset metadata schema
+
+const PresetMetadata = Schema.Struct({
+  labelId: Schema.String,
+})
+
+// graphql queries
+const issueQueryFields = `
+  id
+  identifier
+  title
+  description
+  priority
+  estimate
+  state {
+    id
+    name
+    type
+  }
+  labelIds
+  inverseRelations {
+    nodes {
+      id
+      type
+      issue {
+        id
+        identifier
+        state {
+          id
+          name
+          type
+        }
+      }
+    }
+  }
+  completedAt
+`
+
+const allIssuesNoLabelQuery = `query allIssues($projectId: ID!) {
+  issues(
+    first: 250,
+    filter: {
+      project: { id: { eq: $projectId } }
+      assignee: { isMe: { eq: true } }
+      state: { type: { in: ["unstarted", "started", "completed"] } }
+    },
+    sort: { createdAt: { order: Ascending } }
+  ) {
+    nodes {
+      ${issueQueryFields}
+    }
+  }
+}
+`
+const allIssuesQuery = `query allIssues($projectId: ID!, $labelId: ID!) {
+  issues(
+    first: 250,
+    filter: {
+      project: { id: { eq: $projectId } }
+      assignee: { isMe: { eq: true } }
+      labels: { id: { eq: $labelId } }
+      state: { type: { in: ["unstarted", "started", "completed"] } }
+    },
+    sort: { createdAt: { order: Ascending } }
+  ) {
+    nodes {
+      ${issueQueryFields}
+    }
+  }
+}
+`
+const issueByIdQuery = `query issueById($id: String!) {
+  issue(id: $id) {
+    ${issueQueryFields}
+  }
+}
+`
+
+// Persistables
+
+const ProjectSchema = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  teams: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      name: Schema.String,
+    }),
+  ),
+})
+
+class LinearState extends Persistable.Class<{
+  payload: {}
+}>()("lalph/LinearState", {
+  primaryKey: (_) => "state",
+  success: Schema.Struct({
+    labels: Schema.Array(
+      Schema.Struct({
+        id: Schema.String,
+        name: Schema.String,
+      }),
+    ),
+    projects: Schema.Array(ProjectSchema),
+    states: Schema.Array(
+      Schema.Struct({
+        id: Schema.String,
+        name: Schema.String,
+        type: Schema.String,
+        teamId: Schema.optional(Schema.String),
+      }),
+    ),
+    viewer: Schema.Struct({
+      id: Schema.String,
+    }),
+  }),
+}) {}
+
+const memoize = <A, B>(f: (a: A) => B): ((a: A) => B) => {
+  const cache = new Map<A, B>()
+  return (a: A) => {
+    const cached = cache.get(a)
+    if (cached) return cached
+    const b = f(a)
+    cache.set(a, b)
+    return b
+  }
+}

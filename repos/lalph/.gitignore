@@ -1,0 +1,6 @@
+.direnv/
+.lalph/
+node_modules/
+dist/
+lalph-plan.md
+*.tsbuildinfo

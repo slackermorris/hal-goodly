@@ -1,0 +1,71 @@
+import * as S from "effect/Schema"
+
+export const Type = S.Literals([
+  "completed",
+  "started",
+  "unstarted",
+  "canceled",
+  "backlog",
+  "triage",
+])
+export type Type = S.Schema.Type<typeof Type>
+
+export class State extends S.Class<State>("State")({
+  id: S.String,
+  name: S.String,
+  type: Type,
+}) {}
+
+export class Issue extends S.Class<Issue>("Issue")({
+  id: S.String,
+  identifier: S.String,
+  state: State,
+}) {}
+
+export class InverseRelationsNode extends S.Class<InverseRelationsNode>(
+  "InverseRelationsNode",
+)({
+  id: S.String,
+  type: S.String,
+  issue: Issue,
+}) {}
+
+export class InverseRelations extends S.Class<InverseRelations>(
+  "InverseRelations",
+)({
+  nodes: S.Array(InverseRelationsNode),
+}) {}
+
+export class IssuesNode extends S.Class<IssuesNode>("IssuesNode")({
+  id: S.String,
+  identifier: S.String,
+  title: S.String,
+  description: S.NullOr(S.String),
+  priority: S.Number,
+  estimate: S.NullOr(S.Number),
+  state: State,
+  labelIds: S.Array(S.String),
+  inverseRelations: InverseRelations,
+  completedAt: S.NullOr(S.DateTimeUtc),
+}) {
+  readonly blockedBy = this.inverseRelations.nodes.filter(
+    (relation) =>
+      relation.type === "blocks" &&
+      incompleteStates.has(relation.issue.state.type),
+  )
+}
+const incompleteStates = new Set<Type>(["backlog", "unstarted", "started"])
+
+export const LinearIssueData = S.Struct({
+  issue: IssuesNode,
+})
+
+export class Issues extends S.Class<Issues>("Issues")({
+  nodes: S.Array(IssuesNode),
+}) {}
+
+export class LinearIssuesData extends S.Class<LinearIssuesData>(
+  "LinearIssuesData",
+)({
+  issues: Issues,
+}) {}
