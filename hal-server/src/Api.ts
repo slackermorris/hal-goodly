@@ -3,7 +3,6 @@ import * as Effect from "effect/Effect";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import { Result, Schema } from "effect";
-import { ReadResponseSchema } from "./EventLog.ts";
 import * as HttpApiError from "./HttpApiError.ts";
 import Thread, { SubmitResultSchema } from "./Thread.ts";
 
@@ -119,11 +118,6 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
               return yield* HttpServerResponse.json(result);
             }
-
-            case "diagnostics":
-              return yield* HttpServerResponse.json(
-                yield* thread.diagnostics(),
-              );
 
             /**
              * `abort` destroys the instance serving this very request, so the

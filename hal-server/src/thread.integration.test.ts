@@ -6,7 +6,6 @@ import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
 
 import Stack from "../alchemy.run.ts";
 import * as HttpApiError from "./HttpApiError.ts";
-import type { Diagnostics } from "./Thread.ts";
 
 /**
  * This test stands up the real stack and drives it over HTTP.
@@ -173,6 +172,30 @@ test(
   }),
 );
 
+test(
+  "thread (state) survives eviction",
+  Effect.gen(function* () {
+    const author = "john boot";
+    const messageOne = "helllo";
+    const messageTwo = "world";
+    const threadName = "thread-survives-eviction-thread";
+
+    const { submit, evict, read } = yield* HttpWorker;
+
+    yield* submit({ threadName, text: messageOne, author });
+
+    yield* evict(threadName);
+
+    yield* submit({ threadName, text: messageTwo, author });
+
+    const response = yield* read(threadName, 0);
+    const { events = [] } = yield* response.json;
+
+    expect(events).toHaveLength(2);
+    expect(events.map(({ author }) => author)).toEqual([author, author]);
+  }),
+);
+
 const HttpWorker = Effect.gen(function* () {
   const { url: baseUrl } = yield* stack;
   const client = yield* HttpClient.HttpClient;
@@ -227,25 +250,7 @@ const HttpWorker = Effect.gen(function* () {
         return (yield* response.json) as { seq: number };
       }),
 
-    diagnostics: (name: string) =>
-      Effect.gen(function* () {
-        const response = yield* client.execute(
-          HttpClientRequest.get(`${baseUrl}/threads/${name}/diagnostics`),
-        );
-        expect(response.status).toBe(200);
-        return (yield* response.json) as Diagnostics;
-      }),
-
-    /**
-     * `state.abort()` destroys the instance that is serving this request, so
-     * the response never arrives — the caller sees a transport failure or the
-     * Worker's own 500. Both mean the eviction happened, so the outcome is
-     * discarded rather than asserted on; the assertion that matters is the
-     * changed `incarnation` on the next request.
-     */
     evict: (name: string) =>
-      client
-        .execute(HttpClientRequest.get(`${baseUrl}/threads/${name}/evict`))
-        .pipe(Effect.catchCause(() => Effect.succeed(null))),
+      client.execute(HttpClientRequest.get(`${baseUrl}/threads/${name}/evict`)),
   };
 });
