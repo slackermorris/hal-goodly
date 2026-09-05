@@ -42,6 +42,12 @@ export const Event = Schema.Union([MessageEvent])
 /** Storage → Domain; forgiving. A malformed row is `Option.none`, one skipped entry. */
 export const decodeEvent = Schema.decodeUnknownOption(Event);
 
+/**
+ * What a caller hands the log: the domain event minus the fields the log
+ * itself assigns. `at` is stamped by the constructor default, `seq` by SQLite.
+ */
+export type EventInput = Parameters<typeof MessageEvent.make>[0];
+
 /** Domain → Storage. Running the constructor is what stamps `at`. */
-export const encodeEvent = (input: typeof Event.Type) =>
+export const encodeEvent = (input: EventInput) =>
   Schema.encodeOption(Event)(MessageEvent.make(input));

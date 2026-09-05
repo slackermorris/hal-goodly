@@ -58,7 +58,59 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
       const threadId = state.id.toString();
       const log = yield* EventLog.make(state.storage.sql);
 
+      const sessions = new Map<string, Cloudflare.WebSocket>();
+
+      for (const socket of yield* state.getWebSockets()) {
+        const data = socket.deserializeAttachment<{ id: string }>();
+        if (data) sessions.set(data.id, socket);
+      }
+
+      const broadcast = (text: string) =>
+        Effect.gen(function* () {
+          for (const peer of sessions.values()) {
+            yield* peer.send(text);
+          }
+        });
+
       return {
+        fetch: Effect.gen(function* () {
+          const [response, socket] = yield* Cloudflare.upgrade();
+
+          const id = crypto.randomUUID();
+          // Persist a JSON-safe value alongside the socket. Kept across hibernation.
+          socket.serializeAttachment({ id });
+          sessions.set(id, socket);
+
+          return response;
+        }),
+        webSocketMessage: Effect.fn(function* (
+          socket: Cloudflare.WebSocket,
+          message: string | ArrayBuffer,
+        ) {
+          const attachment = socket.deserializeAttachment<{ id: string }>();
+          if (!attachment) return;
+          const text =
+            typeof message === "string"
+              ? message
+              : new TextDecoder().decode(message);
+
+          // [ ] TODO: remove this magic isolating of the id
+          const label = attachment.id.slice(0, 8);
+          yield* broadcast(`[${label}] ${text}`);
+        }),
+
+        webSocketClose: Effect.fn(function* (
+          socket: Cloudflare.WebSocket,
+          code: number,
+          reason: string,
+        ) {
+          const attachment = socket.deserializeAttachment<{ id: string }>();
+          if (attachment) sessions.delete(attachment.id);
+          yield* socket.close(code, reason);
+        }),
+
+        broadcast,
+
         submit: (input) =>
           log
             .append({
