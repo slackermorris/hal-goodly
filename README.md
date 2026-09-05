@@ -39,31 +39,31 @@ The full design is in [`docs/sdd.md`](./docs/sdd.md), the argument behind it in
 [`docs/event-log-thesis.md`](./docs/event-log-thesis.md), and the short form —
 where we are and what is settled — in [`docs/design.md`](./docs/design.md).
 
-## Status: Phase 0 — foundation
+## Status: Phase 1 — the spine, in progress
 
-Phase 0 exists to falsify the foundation cheaply, before any AI is involved.
-Its exit criterion:
+Phase 0 proved the foundation and is done: an Alchemy stack declaring one Worker
+and one Durable Object namespace in Effect, with the binding typed by the same
+declaration that provisions it. No `wrangler.jsonc`, no generated env.
 
-> An echo round-trips through an Effect runtime at a Durable Object entrypoint,
-> with Alchemy-declared bindings typed end to end.
+Phase 1 is the log, with no AI involved. Its exit criterion:
+
+> Two clients, one thread. Kill one mid-exchange; on reconnect it replays
+> exactly what it missed, in order, with correct attribution.
 
 What is here:
 
-- An Alchemy stack declaring one Worker and one Durable Object namespace, in
-  Effect. No `wrangler.jsonc`, no generated env — the declaration that
-  provisions the namespace is the one that types the client.
-- A `Threads` Durable Object that reads and writes durable storage, so the
-  runtime boundary is proven rather than assumed.
-- One `Echo` schema in `hal-server/src/Thread.ts` that the Worker, the Durable
-  Object, and the tests all agree on. It is not yet a separate package —
-  there is no second workspace to share it with until the web client lands.
-- The first cut of `EventLog` — the append-only, ordered log the whole design
-  rests on. Append with an idempotency key, replay from a cursor, head. It owns
+- `EventLog` — the append-only, ordered log the whole design rests on. Append
+  gated on the SQLite row cap, replay from a cursor with a limit, count. It owns
   the `events` table and nothing else touches it.
+- `Event` — one schema per event kind, in a discriminated union that so far has
+  one member, `message`. The same schema is the SQLite row, the domain object,
+  and the source of the derived JSON wire shape.
+- A `Thread` Durable Object that owns one `EventLog` and exposes submit, read,
+  and evict. The `Api` Worker routes `/threads/:id/{submit,read,evict}` to it.
 
-What is deliberately **not** here yet: socket fan-out and participants (the rest
-of Phase 1), telemetry (Phase 2), any model call (Phase 3), sandboxes (Phase 4),
-and everything after.
+What is deliberately **not** here yet: hibernating socket fan-out, participants,
+and `head` (the rest of Phase 1), telemetry (Phase 2), any model call (Phase 3),
+sandboxes (Phase 4), and everything after.
 
 ## Layout
 
@@ -127,17 +127,17 @@ npm run deploy -w hal-server     # deploy
 npm run destroy -w hal-server    # tear the stack down
 ```
 
-Verify the Phase 0 exit criterion:
+Run the stack tests:
 
 ```bash
 npm run test:integration
 ```
 
-That stands the stack up in local workerd and drives it over HTTP: the echo
-comes back formatted rather than merely echoed, the per-thread counter advances
-across requests (proving storage is durable, not per-invocation memory), and a
-different thread name lands on a different instance whose counter starts from
-its own zero.
+That stands the stack up in local workerd and drives it over HTTP: a written
+message reads back whole with its `seq`, author, and time; two authors on one
+thread come back in order; text exactly on the row cap is accepted and two bytes
+over returns 413; and a thread forcibly evicted keeps its log and its `seq`
+across the restart.
 
 Note that `dev: true` runs the Worker locally rather than deploying it, but
 Alchemy still resolves a Cloudflare account before planning — so credentials are
@@ -145,18 +145,20 @@ required either way. The two suites are split by file name — `vitest.config.ts
 excludes `*.integration.test.ts`, `vitest.integration.config.ts` includes only
 those — precisely so `npm run check` needs no credentials.
 
-**The other half of the exit criterion — "bindings typed end to end" — is
-proven by `npm run typecheck`**, not by this test. The Worker gets its
-`Threads` client from the same declaration that provisions the namespace, so a
-mismatch is a compile error rather than a runtime 500.
+**Phase 0's "bindings typed end to end" is proven by `npm run typecheck`**,
+not by a test. The Worker gets its `Threads` client from the same declaration
+that provisions the namespace, so a mismatch is a compile error rather than a
+runtime 500.
 
 Or check it by hand:
 
 ```bash
 npm run dev -w hal-server
 curl "http://localhost:8787/health"
-curl "http://localhost:8787/echo/alpha?text=hello%20%20world"
-curl "http://localhost:8787/echo/alpha?text=again"     # seq advances
+curl -X POST "http://localhost:8787/threads/alpha/submit" \
+  -H 'content-type: application/json' \
+  -d '{"text":"hello","author":"jack"}'                  # seq 1
+curl "http://localhost:8787/threads/alpha/read?after=0"  # replays it
 ```
 
 ## Notes on the stack

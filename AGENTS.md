@@ -12,8 +12,6 @@ projections of one append-only ordered log. Do not introduce a second source of
 truth for conversation state. If you find yourself adding a parallel table, a
 side channel, or a cache that could disagree with the log, stop.
 
-Phase 0 (current) has no log yet — it exists only to prove the foundation.
-
 ## Stack
 
 | Concern                             | Choice                                                     |
@@ -71,7 +69,7 @@ Follow the existing Effect idiom, which matches the sibling `gen-ui-ne` project:
 | `npm run lint`                  | oxlint, type-aware                                                  |
 | `npm run format`                | oxfmt write                                                         |
 | `npm test`                      | unit tests only; stack tests are opt-in                             |
-| `npm run test:integration`      | the Phase 0 round-trip test, in local workerd — needs credentials   |
+| `npm run test:integration`      | the stack tests, in local workerd — needs credentials               |
 | `npm run dev -w hal-server`     | `alchemy dev`                                                       |
 | `npm run deploy -w hal-server`  | `alchemy deploy`                                                    |
 | `npm run destroy -w hal-server` | `alchemy destroy`                                                   |
