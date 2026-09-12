@@ -51,3 +51,11 @@ export type EventInput = Parameters<typeof MessageEvent.make>[0];
 /** Domain → Storage. Running the constructor is what stamps `at`. */
 export const encodeEvent = (input: EventInput) =>
   Schema.encodeOption(Event)(MessageEvent.make(input));
+
+export const EventFrame = Schema.fromJsonString(Event);
+
+/** Domain → WS Frame. */
+export const encodeEventFrame = Schema.encodeSync(EventFrame);
+
+/** Frame → Domain; strict. A client that receives a shape it does not know should hear about it. */
+export const decodeEventFrame = Schema.decodeUnknownSync(EventFrame);

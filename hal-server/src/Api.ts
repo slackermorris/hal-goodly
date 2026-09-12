@@ -5,7 +5,12 @@ import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import { Result, Schema } from "effect";
 import * as HttpApiError from "./HttpApiError.ts";
-import Thread, { SubmitResultSchema } from "./Thread.ts";
+import Thread, {
+  AUTHOR_HEADER,
+  CLIENT_HEADER,
+  CURSOR_HEADER,
+  SubmitResultSchema,
+} from "./Thread.ts";
 import { HttpRouter } from "effect/unstable/http";
 
 /**
@@ -83,7 +88,20 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
             });
           }
 
-          return yield* (yield* thread).fetch(request);
+          const identity = yield* Effect.result(
+            HttpServerRequest.schemaSearchParams(SocketIdentityParams),
+          );
+
+          if (Result.isFailure(identity)) {
+            return HttpServerResponse.text(
+              "expected ?author=<name>&client=<id> on the socket URL",
+              { status: 400 },
+            );
+          }
+
+          return yield* (yield* thread).fetch(
+            withIdentityHeaders(request, identity.success),
+          );
         }),
       ),
 
@@ -173,6 +191,46 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     };
   }),
 ) {}
+
+/**
+ * Forward the upgrade request with the resolved identity as headers.
+ *
+ * `request.modify({ headers })` is not enough here: when an Effect request
+ * wraps a raw `Request`, `HttpServerRequest.toWeb` hands that raw object
+ * straight through and the override is lost before it reaches the stub. So
+ * the raw request is cloned and the headers are set on the clone.
+ */
+const withIdentityHeaders = (
+  request: HttpServerRequest.HttpServerRequest,
+  identity: {
+    readonly author: string;
+    readonly client: string;
+    readonly after: string;
+  },
+): HttpServerRequest.HttpServerRequest => {
+  const raw = new Request(request.source as Request);
+  raw.headers.set(AUTHOR_HEADER, identity.author);
+  raw.headers.set(CLIENT_HEADER, identity.client);
+  raw.headers.set(CURSOR_HEADER, identity.after);
+  return HttpServerRequest.fromWeb(raw);
+};
+
+/**
+ * Who is on the other end of a socket. `author` is the human-readable name
+ * that attribution shows; `client` is a stable, client-minted id for the
+ * device or tab, so one person on two tabs is two clients and one author.
+ */
+const SocketIdentityParams = Schema.Struct({
+  author: Schema.String.check(Schema.isNonEmpty()),
+  client: Schema.String.check(Schema.isNonEmpty()),
+  /**
+   * `withDecodingDefaultKey`, not `withConstructorDefault`: the latter only
+   * applies to `.make()`, and search params arrive through decode. The `Key`
+   * variant fires on an absent key only, which is the only way a query
+   * string can omit a value.
+   */
+  after: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("0"))),
+});
 
 const SubmitMessagePayload = Schema.Struct({
   text: Schema.String,

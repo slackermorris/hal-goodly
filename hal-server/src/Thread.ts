@@ -1,7 +1,12 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import { Schema } from "effect";
 import * as Effect from "effect/Effect";
+import * as Headers from "effect/unstable/http/Headers";
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
+import * as Option from "effect/Option";
 import * as EventLog from "./EventLog.ts";
+import { encodeEventFrame, Event } from "./Event.ts";
 
 /**
  * One conversation. Formerly `SessionDO`, and renamed for two reasons.
@@ -49,6 +54,33 @@ export const SubmitResultSchema = Schema.TaggedUnion({
 
 export type SubmitResult = typeof SubmitResultSchema.Type;
 
+/**
+ * Headers the `Api` Worker sets on the forwarded upgrade request once it has
+ * resolved who is connecting. The object trusts them because only the Worker
+ * can reach it.
+ */
+export const AUTHOR_HEADER = "x-hal-author";
+export const CLIENT_HEADER = "x-hal-client";
+export const CURSOR_HEADER = "x-hal-cursor";
+
+/**
+ * What rides along with a hibernated socket. Three ids for three lifetimes:
+ *
+ * - `socketId` is one connection, minted here at upgrade. It keys the session
+ *   set, so closing one tab never drops another.
+ * - `clientId` is one device or tab, minted by the client and stable across
+ *   reconnects.
+ * - `author` is the human, and is what attribution shows and the log stores.
+ *
+ * The attachment is serialised into the hibernation record, which is capped
+ * at 2 KB, so it stays at these fields.
+ */
+type Attachment = {
+  readonly socketId: string;
+  readonly clientId: string;
+  readonly author: string;
+};
+
 export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
   "Threads",
   Effect.gen(function* () {
@@ -61,42 +93,95 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
       const sessions = new Map<string, Cloudflare.WebSocket>();
 
       for (const socket of yield* state.getWebSockets()) {
-        const data = socket.deserializeAttachment<{ id: string }>();
-        if (data) sessions.set(data.id, socket);
+        const data = socket.deserializeAttachment<Attachment>();
+        if (data) sessions.set(data.socketId, socket);
       }
 
-      const broadcast = (text: string) =>
+      /**
+       * Fan one persisted event out to every live socket. Takes the domain
+       * event, not a string: what peers receive is the row the log holds, with
+       * its `seq`, encoded once through the same frame codec replay uses.
+       */
+      const broadcast = (event: typeof Event.Type) =>
         Effect.gen(function* () {
+          const frame = encodeEventFrame(event);
           for (const peer of sessions.values()) {
-            yield* peer.send(text);
+            yield* peer.send(frame);
           }
         });
 
       return {
         fetch: Effect.gen(function* () {
+          const request = yield* HttpServerRequest.HttpServerRequest;
+          const author = Headers.get(request.headers, AUTHOR_HEADER);
+          const clientId = Headers.get(request.headers, CLIENT_HEADER);
+          const cursor = Headers.get(request.headers, CURSOR_HEADER);
+
+          if (
+            Option.isNone(author) ||
+            Option.isNone(clientId) ||
+            Option.isNone(cursor)
+          ) {
+            return HttpServerResponse.text("socket identity headers missing", {
+              status: 500,
+            });
+          }
+
           const [response, socket] = yield* Cloudflare.upgrade();
 
-          const id = crypto.randomUUID();
-          // Persist a JSON-safe value alongside the socket. Kept across hibernation.
-          socket.serializeAttachment({ id });
-          sessions.set(id, socket);
+          const after = Number(cursor.value);
+
+          const page = yield* log.read(after);
+          for (const event of page.events) {
+            yield* socket.send(encodeEventFrame(event));
+          }
+
+          const attachment: Attachment = {
+            socketId: crypto.randomUUID(),
+            clientId: clientId.value,
+            author: author.value,
+          };
+          // Persisted alongside the socket; kept across hibernation.
+          socket.serializeAttachment(attachment);
+          sessions.set(attachment.socketId, socket);
 
           return response;
         }),
+
         webSocketMessage: Effect.fn(function* (
           socket: Cloudflare.WebSocket,
           message: string | ArrayBuffer,
         ) {
-          const attachment = socket.deserializeAttachment<{ id: string }>();
+          const attachment = socket.deserializeAttachment<Attachment>();
           if (!attachment) return;
           const text =
             typeof message === "string"
               ? message
               : new TextDecoder().decode(message);
 
-          // [ ] TODO: remove this magic isolating of the id
-          const label = attachment.id.slice(0, 8);
-          yield* broadcast(`[${label}] ${text}`);
+          const input = {
+            kind: "message",
+            author: attachment.author,
+            payload: { text },
+          } as const;
+
+          const result = yield* log.append(input).pipe(
+            Effect.map((receipt) =>
+              SubmitResultSchema.cases.Accepted.make({ receipt }),
+            ),
+            Effect.catchTag("EntryTooLarge", (error) =>
+              Effect.succeed(
+                SubmitResultSchema.cases.EntryTooLarge.make({
+                  bytes: error.bytes,
+                  limit: error.limit,
+                }),
+              ),
+            ),
+          );
+
+          if (result._tag === "Accepted") {
+            yield* broadcast({ ...input, ...result.receipt });
+          }
         }),
 
         webSocketClose: Effect.fn(function* (
@@ -104,8 +189,8 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
           code: number,
           reason: string,
         ) {
-          const attachment = socket.deserializeAttachment<{ id: string }>();
-          if (attachment) sessions.delete(attachment.id);
+          const attachment = socket.deserializeAttachment<Attachment>();
+          if (attachment) sessions.delete(attachment.socketId);
           yield* socket.close(code, reason);
         }),
 
