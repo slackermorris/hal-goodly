@@ -178,6 +178,26 @@ test(
   }),
 );
 
+test(
+  "the log is built from durable storage on the next request",
+  Effect.gen(function* () {
+    const messageAlice = "I hope this message survives";
+
+    const { url } = yield* stack;
+    const threadName = HttpWorker.uniqueThread("persist");
+
+    const { evict } = yield* worker;
+
+    const alice = yield* connect(socketUrl(url, threadName, "alice"));
+    yield* alice.send(messageAlice);
+
+    yield* evict(threadName);
+
+    const message = yield* alice.next;
+    expect(message.payload.text).toBe(messageAlice);
+  }),
+);
+
 const socketUrl = (
   baseUrl: string,
   threadName: string,

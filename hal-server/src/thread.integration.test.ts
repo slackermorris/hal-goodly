@@ -154,3 +154,32 @@ test(
     expect(events.map(({ author }) => author)).toEqual([authorA, authorB]);
   }),
 );
+
+test(
+  "the log is rebuilt from durable storage on the next request",
+  Effect.gen(function* () {
+    const author = "john boot";
+    const threadName = HttpWorker.uniqueThread("evict-survives");
+
+    const { submit, evict, read } = yield* worker;
+
+    yield* submit({ threadName, text: "before the eviction", author });
+
+    const { events: eventsBefore } = yield* read(threadName, 0);
+    expect(eventsBefore.map((event) => event.payload.text)).toEqual([
+      "before the eviction",
+    ]);
+
+    yield* evict(threadName);
+
+    yield* submit({ threadName, text: "after the eviction", author });
+
+    const { events: eventsAfter } = yield* read(threadName, 0);
+    expect(eventsAfter.map((event) => event.payload.text)).toEqual([
+      "before the eviction",
+      "after the eviction",
+    ]);
+  }),
+);
+
+
