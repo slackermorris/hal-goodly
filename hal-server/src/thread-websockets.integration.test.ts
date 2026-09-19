@@ -107,7 +107,7 @@ test(
     const bobAuthor = "bob";
     const aliceAuthor = "alice";
 
-    const { read, submit } = yield* worker;
+    const { submit } = yield* worker;
 
     yield* submit({ threadName, text: firstMessageAlice, author: aliceAuthor });
     yield* submit({
@@ -142,6 +142,40 @@ test(
     Effect.provide(Socket.layerWebSocketConstructorGlobal),
   ),
   { timeout: 30_000 },
+);
+
+test(
+  "client reads past cursor",
+  Effect.gen(function* () {
+    const { url } = yield* stack;
+    const threadName = HttpWorker.uniqueThread("replay");
+
+    const firstMessageAlice = "first entry";
+    const secondMessageAlice = "second entry";
+    const thirdMessageBob = "third entry";
+
+    const bobAuthor = "bob";
+    const aliceAuthor = "alice";
+
+    const { submit } = yield* worker;
+
+    yield* Effect.forEach(
+      [
+        { text: firstMessageAlice, author: aliceAuthor },
+        { text: secondMessageAlice, author: aliceAuthor },
+        { text: thirdMessageBob, author: bobAuthor },
+      ],
+      (payload) => submit({ threadName, ...payload }),
+    );
+
+    const cursor = "2";
+    const aliceWsConnection = yield* connect(
+      socketUrl(url, threadName, aliceAuthor, cursor),
+    );
+
+    const aliceSaw = yield* aliceWsConnection.next;
+    expect(aliceSaw.payload.text).toEqual(thirdMessageBob);
+  }),
 );
 
 const socketUrl = (
