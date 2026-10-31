@@ -34,21 +34,30 @@ What is in place:
 - `Event` is a discriminated union with one kind, `message`. One schema serves
   the SQLite row, the domain object, and the derived JSON wire shape.
 - `Thread` owns one `EventLog` and exposes intents, not log operations: submit,
-  read, evict. `Api` routes `/threads/:id/{submit,read,evict}` to it.
+  read, head, evict. `Api` routes `/threads/:id/{socket,submit,read,head,evict}`
+  to it.
+- Hibernating WebSocket fan-out. Author, client and cursor are resolved by `Api`
+  from the socket URL and carried in socket attachments, so attribution survives
+  hibernation and never comes from a trusted body field.
+- Replay-then-subscribe. On connect, `Thread` pages the log from the client's
+  cursor up to `head` before attaching the socket, all in one Durable Object
+  turn, so no append can land between the drain and the subscribe.
+- Read cursors are validated at the edge: `after` and `limit` are non-negative
+  integers on both `/read` and the socket URL, and a bad one is a 400 before it
+  reaches the object. An empty page returns `nextCursor = min(after, head)`.
 - The integration suite proves write-then-read, two authors in order, the exact
-  cap boundary, and that `seq` and state survive a forced eviction.
+  cap boundary, that `seq` and state survive a forced eviction, that `seq` is
+  gapless and monotonic under concurrent appends, broadcast between peers with
+  attribution, and a replay deeper than one page.
 
-What is still to do before the exit test can even be written:
+What is still to do:
 
-- Hibernating WebSocket fan-out. No `upgrade` path, no socket set.
-- Participants and attribution carried in socket attachments rather than a
-  trusted body field.
-- The replay-then-subscribe join, which the SDD names as the only genuinely racy
-  part of the fan-out.
-- `head`, and the concurrency test for gapless monotonic `seq`.
+- The Phase 1 exit test itself: kill one of two clients mid-exchange and assert
+  its reconnect replays exactly what it missed.
+- A client that reconnects while an append is in flight sees neither a gap nor
+  a duplicate. The single-turn join is the design's answer; nothing tests it yet.
 
-Known open items carried from PR #1: `nextCursor` on an empty page, and `evict`
-being an unauthenticated route.
+Known open item carried from PR #1: `evict` is an unauthenticated route.
 
 The phases, in order. Each has an exit test; none is started before the previous
 one passes. The ordering is deliberate — **the log and the telemetry come before

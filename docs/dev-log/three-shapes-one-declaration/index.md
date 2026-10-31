@@ -63,7 +63,7 @@ mapping. Plus the insert variant, which is a third thing no derivation knows —
 ## The trap: toCodecJson does not undo an encoding
 
 `toCodecJsonAST` is `applyToSelfOrLastLinkEncodingIdempotent`. It lowers
-*declarations*, but leaves an existing encoding alone when that encoding is
+_declarations_, but leaves an existing encoding alone when that encoding is
 already lawful JSON. Millis and JSON-text both are. So handing a boundary a
 schema that still carries the storage encoding ships the storage encoding to
 the client:
@@ -88,7 +88,7 @@ still the wrong trade here.
 Two reasons. It is heavier than the problem: the whole apparatus bought one
 `seq` omission and one timestamp default, both of which are three lines of plain
 `Schema.Struct` and an explicit stamp in the write path. And it hides the wrong
-thing — `seq` is genuinely SQLite's to assign, but `at` is assigned by *our*
+thing — `seq` is genuinely SQLite's to assign, but `at` is assigned by _our_
 code, and burying that in a `VariantSchema.Overrideable` default made the two
 look alike. Worse, that default only fires through the variant's constructor, so
 encoding a plain object drops `at` silently.

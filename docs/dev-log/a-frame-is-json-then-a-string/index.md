@@ -29,7 +29,7 @@ the same derivation `HttpBody.jsonSchema` performs for an HTTP body,
 `/read` cannot disagree about an event's shape.
 
 ```typescript
-const stringifiedSchema = Schema.fromJsonString(jsonRepresentation)
+const stringifiedSchema = Schema.fromJsonString(jsonRepresentation);
 ```
 
 The `from*` convention signals that the Decoded side is JSON and the Encoded

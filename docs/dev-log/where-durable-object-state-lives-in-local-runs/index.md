@@ -81,7 +81,7 @@ expect(secondCall.seq).toBe(2);
 
 `seq` starting at 1 is not a fact about the Durable Object. It is a fact about
 the deploy having been fresh. The file already carries a comment about
-isolation *within* a run — each test addresses a different session name,
+isolation _within_ a run — each test addresses a different session name,
 because two tests sharing one would only pass in declaration order. The
 cross-run version of that hazard sits one level up and is not written down: if a
 run ever reuses an instance ID — a resumed stack, a destroy that did not
@@ -113,7 +113,7 @@ state, and the state store is unavoidably one of them.
 
 The `seq` assertions should not depend on the deploy having been fresh.
 `Session` already exposes a `currentSeq` that nothing calls — reading it first
-and asserting the *advance* rather than the absolute value would make the test
+and asserting the _advance_ rather than the absolute value would make the test
 say what it means, and would keep passing against a Durable Object that has
 lived a life before the assertion runs. That is the honest shape for Phase 1
 too, where the cursor is read by clients joining an existing session rather than

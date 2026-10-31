@@ -1,9 +1,9 @@
-import { DateTime, Effect, Schema } from "effect";
+import { DateTime, Effect, Schema } from 'effect';
 
 // ─── Domain ──────────────────────────────────────────────────────────
 
 const MessagePayload = Schema.Struct({ text: Schema.String }).annotate({
-  identifier: "Event.Message.Payload",
+  identifier: 'Event.Message.Payload',
 });
 
 /**
@@ -19,7 +19,7 @@ const MessagePayload = Schema.Struct({ text: Schema.String }).annotate({
  */
 export const MessageEvent = Schema.Struct({
   seq: Schema.Int.pipe(Schema.optional),
-  kind: Schema.Literal("message"),
+  kind: Schema.Literal('message'),
   author: Schema.String,
   /**
    * `DateFromMillis` rather than `DateTimeUtcFromMillis`: the domain event
@@ -31,11 +31,11 @@ export const MessageEvent = Schema.Struct({
     Schema.withConstructorDefault(Effect.map(DateTime.now, DateTime.toDateUtc)),
   ),
   payload: Schema.fromJsonString(Schema.toCodecJson(MessagePayload)),
-}).annotate({ identifier: "Event.Message" });
+}).annotate({ identifier: 'Event.Message' });
 
 export const Event = Schema.Union([MessageEvent])
-  .annotate({ identifier: "Event" })
-  .pipe(Schema.toTaggedUnion("kind"));
+  .annotate({ identifier: 'Event' })
+  .pipe(Schema.toTaggedUnion('kind'));
 
 // ─── Crossings ───────────────────────────────────────────────────────
 

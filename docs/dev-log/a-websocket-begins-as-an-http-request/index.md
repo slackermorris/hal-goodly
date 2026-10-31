@@ -10,7 +10,7 @@ support a new `ws` protocol.
 
 ```typescript
 const url = new URL('http:<DOMAIN>/threads/${threadName}/socket');
-url.protocol = url.protocol.replace(/^http/, "ws");
+url.protocol = url.protocol.replace(/^http/, 'ws');
 ```
 
 And then it takes two extra headers. A
@@ -49,9 +49,9 @@ The HTTP handler for the socket illustrates this nicely:
 ```
 
 These instructions ask the receiving server to switch the protocol on the TCP
-connection from HTTP to Websocket. This request is the *upgrade* request.
+connection from HTTP to Websocket. This request is the _upgrade_ request.
 `Cloudflare.upgrade()` is the fulfilment of the switch: the server replies with
-a *Switching Protocols* response.
+a _Switching Protocols_ response.
 
 ```typescript
 fetch: Effect.gen(function* () {

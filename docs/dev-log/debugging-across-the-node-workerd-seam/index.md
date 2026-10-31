@@ -8,7 +8,7 @@ phase: 0
 [The previous entry](../where-durable-object-state-lives-in-local-runs/index.md)
 established that a local run is workerd — the same engine that runs on the
 edge, with the network and the account taken away. This entry is the
-consequence nobody advertises: because the emulator is a *separate process*, a
+consequence nobody advertises: because the emulator is a _separate process_, a
 debugger attached to the test run cannot see the application code at all.
 
 Test code runs in Node. Debugging it is native and needs no launch config —
@@ -23,7 +23,7 @@ seam.**
 ## The two processes
 
 Captured live during a paused run — real PIDs, real ports. Alchemy spawns
-*two* workerd children from the Node runner:
+_two_ workerd children from the Node runner:
 
 ```
 ┌─ node 81653 ──────────────────────────┐
@@ -50,7 +50,7 @@ whatever the OS hands out that run. The proxy is what gives the tests a fixed
 address, and what lets Alchemy swap the worker underneath on reload without the
 URL moving.
 
-Worth noting what is *not* a separate process. `Thread` is a Durable Object, and
+Worth noting what is _not_ a separate process. `Thread` is a Durable Object, and
 `threads.getByName(...).submit(...)` reads like another network hop, but the DO
 class is declared on the same worker and shares its isolate. One attach covers
 all three files, and stepping from the fetch handler into a DO method works.
@@ -69,7 +69,7 @@ submit(name, "first")
                      ◀─── bytes ────   returns Response
 ```
 
-The Node stack *ends* at the socket write — it suspends on I/O exactly as it
+The Node stack _ends_ at the socket write — it suspends on I/O exactly as it
 would for any third-party API. On the other side, `Api.fetch` begins with a
 fresh stack that has no memory of the caller. **Step Into on `submit(...)` will
 not enter `Api.fetch`.** A breakpoint has to already be installed on the workerd
@@ -78,7 +78,7 @@ side before the request arrives.
 ## What Cloudflare offers out of the box
 
 Cloudflare ships `@cloudflare/vitest-pool-workers`, a Vitest pool that runs the
-tests *inside* workerd — one isolate, everything debuggable together, no patch
+tests _inside_ workerd — one isolate, everything debuggable together, no patch
 and no two-session dance. That is normally the right answer, and it does not fit
 here: it is driven by `wrangler.jsonc`, and this stack is Alchemy-declared with
 no wrangler config. Adopting it means a second source of truth for bindings,
@@ -102,7 +102,7 @@ internal RPC socket:
 
 That is the whole of it, at
 [`Runtime.ts:262`](../../../repos/alchemy/packages/cloudflare-runtime/src/core/Runtime.ts).
-It was never that workerd failed to *report* an inspector — there was no
+It was never that workerd failed to _report_ an inspector — there was no
 inspector to report. No flag, no socket, nothing listening, nothing to
 advertise. The runtime is not missing the capability, only the argument:
 [`Workerd.ts`](../../../repos/alchemy/packages/cloudflare-runtime/src/core/workerd/Workerd.ts)
@@ -136,7 +136,7 @@ sources — `../../../src/Api.ts` — that resolve correctly from the bundle
 directory. What is missing is only the `sourceMappingURL` comment that would
 point workerd at it.
 
-So the map does not need to be rebuilt, only *found*. `cwd` and `outFiles` do
+So the map does not need to be rebuilt, only _found_. `cwd` and `outFiles` do
 that: workerd names its scripts with a bare URL (`Api.js`), resolving that
 against the bundle directory lands on the real file, and js-debug reads the
 sibling `.map`. Confirmed against a default build — `Api.ts:71` mapped to
@@ -227,8 +227,8 @@ smoke test for whether the setup is working.
 The patch is a liability and should be treated as one. It edits a beta
 dependency's built output, and the only thing keeping it applied is a
 `postinstall` hook; if Alchemy changes that call site the script warns rather
-than failing the install, which means the failure mode is *debugging quietly
-stopped working*. The honest fix is upstream, and it is small — `Workerd.ts`
+than failing the install, which means the failure mode is _debugging quietly
+stopped working_. The honest fix is upstream, and it is small — `Workerd.ts`
 already understands `inspector-addr`, so this is a flag being threaded through
 `Runtime.start`, not a feature. Worth raising against
 [alchemy-run/alchemy](https://github.com/alchemy-run/alchemy) rather than

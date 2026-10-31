@@ -1,10 +1,10 @@
-import * as Cloudflare from "alchemy/Cloudflare";
-import * as Vitest from "alchemy/Test/Vitest";
-import * as Effect from "effect/Effect";
+import * as Cloudflare from 'alchemy/Cloudflare';
+import * as Vitest from 'alchemy/Test/Vitest';
+import * as Effect from 'effect/Effect';
 
-import Stack from "../alchemy.run.ts";
-import * as HttpApiError from "./HttpApiError.ts";
-import * as HttpWorker from "./test-support/HttpWorker.ts";
+import Stack from '../alchemy.run.ts';
+import * as HttpApiError from './HttpApiError.ts';
+import * as HttpWorker from './test-support/HttpWorker.ts';
 
 /**
  * This test stands up the real stack and drives it over HTTP.
@@ -33,26 +33,24 @@ afterAll(destroy(Stack));
 const worker = Effect.flatMap(stack, ({ url }) => HttpWorker.make(url));
 
 test(
-  "worker returns a url",
+  'worker returns a url',
   Effect.gen(function* () {
     const { url } = yield* stack;
-    expect(url).toBeTypeOf("string");
+    expect(url).toBeTypeOf('string');
   }),
 );
 
 // TODO: rename this test block
-describe("storage threshold", () => {
+describe('storage threshold', () => {
   const LIMIT = 1_800_000;
   // The input is persisted as a JSON Blob in the format below.
-  const overhead = new TextEncoder().encode(
-    JSON.stringify({ text: "" }),
-  ).byteLength;
+  const overhead = new TextEncoder().encode(JSON.stringify({ text: '' })).byteLength;
 
   test(
-    "accepts input that is equal to the storage threshold",
+    'accepts input that is equal to the storage threshold',
     Effect.gen(function* () {
-      const threadName = HttpWorker.uniqueThread("at-limit");
-      const atLimitText = "x".repeat(LIMIT - overhead);
+      const threadName = HttpWorker.uniqueThread('at-limit');
+      const atLimitText = 'x'.repeat(LIMIT - overhead);
 
       const { submit } = yield* worker;
 
@@ -62,10 +60,10 @@ describe("storage threshold", () => {
   );
 
   test(
-    "rejects input that is over the storage threshold",
+    'rejects input that is over the storage threshold',
     Effect.gen(function* () {
-      const threadName = HttpWorker.uniqueThread("over-limit");
-      const overLimitText = "x".repeat(LIMIT + 2);
+      const threadName = HttpWorker.uniqueThread('over-limit');
+      const overLimitText = 'x'.repeat(LIMIT + 2);
 
       const { submit } = yield* worker;
 
@@ -76,11 +74,11 @@ describe("storage threshold", () => {
 });
 
 test(
-  "user writing to thread gets expected response",
+  'user writing to thread gets expected response',
   Effect.gen(function* () {
-    const author = "larry mcmurty";
-    const threadName = HttpWorker.uniqueThread("receipt");
-    const text = "user written message";
+    const author = 'larry mcmurty';
+    const threadName = HttpWorker.uniqueThread('receipt');
+    const text = 'user written message';
 
     const { submit } = yield* worker;
 
@@ -99,11 +97,11 @@ test(
 );
 
 test(
-  "user can write to thread and read back their message",
+  'user can write to thread and read back their message',
   Effect.gen(function* () {
-    const author = "larry mcmurty";
-    const threadName = HttpWorker.uniqueThread("read-back");
-    const text = "user written message";
+    const author = 'larry mcmurty';
+    const threadName = HttpWorker.uniqueThread('read-back');
+    const text = 'user written message';
     const cursor = 0;
 
     const { submit, read } = yield* worker;
@@ -115,7 +113,7 @@ test(
     expect(body).toEqual({
       events: [
         {
-          kind: "message",
+          kind: 'message',
           payload: {
             text: text,
           },
@@ -125,18 +123,20 @@ test(
         },
       ],
       nextCursor: 1,
+      // Equal to nextCursor, so this page is the whole log.
+      head: 1,
       skipped: 0,
     });
   }),
 );
 
 test(
-  "multiple users can write to same thread, multiplayer is supported",
+  'multiple users can write to same thread, multiplayer is supported',
   Effect.gen(function* () {
-    const authorA = "larry mcmurty";
-    const authorB = "cormack mccarthy";
+    const authorA = 'larry mcmurty';
+    const authorB = 'cormack mccarthy';
 
-    const threadName = HttpWorker.uniqueThread("multiplayer");
+    const threadName = HttpWorker.uniqueThread('multiplayer');
 
     const authorAMessage = "i'm the best author";
     const authorBMessage = "no, i'm the best author";
@@ -156,30 +156,56 @@ test(
 );
 
 test(
-  "the log is rebuilt from durable storage on the next request",
+  'the log is rebuilt from durable storage on the next request',
   Effect.gen(function* () {
-    const author = "john boot";
-    const threadName = HttpWorker.uniqueThread("evict-survives");
+    const author = 'john boot';
+    const threadName = HttpWorker.uniqueThread('evict-survives');
 
     const { submit, evict, read } = yield* worker;
 
-    yield* submit({ threadName, text: "before the eviction", author });
+    yield* submit({ threadName, text: 'before the eviction', author });
 
     const { events: eventsBefore } = yield* read(threadName, 0);
-    expect(eventsBefore.map((event) => event.payload.text)).toEqual([
-      "before the eviction",
-    ]);
+    expect(eventsBefore.map((event) => event.payload.text)).toEqual(['before the eviction']);
 
     yield* evict(threadName);
 
-    yield* submit({ threadName, text: "after the eviction", author });
+    yield* submit({ threadName, text: 'after the eviction', author });
 
     const { events: eventsAfter } = yield* read(threadName, 0);
     expect(eventsAfter.map((event) => event.payload.text)).toEqual([
-      "before the eviction",
-      "after the eviction",
+      'before the eviction',
+      'after the eviction',
     ]);
   }),
 );
 
+test(
+  'seq is gapless and monotonic under concurrent appends',
+  Effect.gen(function* () {
+    const threadName = HttpWorker.uniqueThread('gapless');
 
+    const { submit, read, head } = yield* worker;
+
+    const total = 64;
+    const expected = Array.from({ length: total }, (_, index) => index + 1);
+
+    // Concurrent on the wire; the Durable Object serialises them. That is the
+    // property under test — nothing in the caller orders these.
+    yield* Effect.forEach(
+      expected,
+      (n) => submit({ threadName, text: `entry ${n}`, author: `author-${n % 4}` }),
+      { concurrency: 'unbounded', discard: true },
+    );
+
+    /**
+     * The whole invariant in one line: the log's end equals the number of rows
+     * in it, so every seq between 1 and head was issued exactly once. A gap
+     * would put head ahead of entries; a reused seq would put it behind.
+     */
+    expect(yield* head(threadName)).toEqual({ seq: total, entries: total });
+
+    const { events } = yield* read(threadName, 0, total);
+    expect(events.map((event) => event.seq)).toEqual(expected);
+  }),
+);

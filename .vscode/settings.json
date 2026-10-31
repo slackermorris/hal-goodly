@@ -13,13 +13,13 @@
 
   // Lets the Test Explorer's "Debug Test" reach Worker code, not just test code.
   //
-  // 
+  //
   // "Debug Test" attaches Node's debugger to the Vitest runner, which covers the
   // test file but not any of the Alchemy stack, which runs in a workerd process.
   //
   // These two vars are picked up by an Alchemy patch and used to spawn a workerd
   // process with an inspectable address that a debugger can attach to.
-  // 
+  //
   // Api.ts / Thread.ts / EventLog.ts — those run in workerd, a
   // separate process. These two vars make the runner open a workerd inspector on
   // 9230 and then hold once the stack is up, which is the window in which you run

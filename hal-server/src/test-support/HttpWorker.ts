@@ -1,12 +1,13 @@
-import * as Vitest from "alchemy/Test/Vitest";
-import { Schema } from "effect";
-import * as Effect from "effect/Effect";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as Vitest from 'alchemy/Test/Vitest';
+import { Schema } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as HttpClient from 'effect/unstable/http/HttpClient';
+import * as HttpClientRequest from 'effect/unstable/http/HttpClientRequest';
+import * as HttpClientResponse from 'effect/unstable/http/HttpClientResponse';
 
-import { EvictionOutcomeSchema } from "../Api.ts";
-import { ReadResponseSchema } from "../EventLog.ts";
+import { EvictionOutcomeSchema } from '../Api.ts';
+import { ReadResponseSchema } from '../EventLog.ts';
+import { ThreadHeadSchema } from '../Thread.ts';
 
 /**
  * The deployed stack's HTTP surface, as a test client.
@@ -23,6 +24,8 @@ import { ReadResponseSchema } from "../EventLog.ts";
  */
 
 const decodeRead = HttpClientResponse.schemaBodyJson(Schema.toCodecJson(ReadResponseSchema));
+
+const decodeHead = HttpClientResponse.schemaBodyJson(Schema.toCodecJson(ThreadHeadSchema));
 
 const decodeEvictionOutcome = HttpClientResponse.schemaBodyJson(
   Schema.toCodecJson(EvictionOutcomeSchema),
@@ -51,7 +54,7 @@ export const make = (baseUrl: string) =>
       submit: ({
         threadName,
         text,
-        author = "anonymous",
+        author = 'anonymous',
       }: {
         threadName: string;
         text: string;
@@ -68,11 +71,21 @@ export const make = (baseUrl: string) =>
           client.execute(
             HttpClientRequest.get(
               `${baseUrl}/threads/${threadName}/read?after=${after}${
-                limit === undefined ? "" : `&limit=${limit}`
+                limit === undefined ? '' : `&limit=${limit}`
               }`,
             ),
           ),
           decodeRead,
+        ),
+
+      /**
+       * The log's end and its entry count, which is the cheap way to assert
+       * gaplessness without reading every row back.
+       */
+      head: (threadName: string) =>
+        Effect.flatMap(
+          client.execute(HttpClientRequest.get(`${baseUrl}/threads/${threadName}/head`)),
+          decodeHead,
         ),
 
       /**

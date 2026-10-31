@@ -1,8 +1,8 @@
-import type * as Cloudflare from "alchemy/Cloudflare";
-import { Option, Schema, Struct } from "effect";
-import * as Effect from "effect/Effect";
-import { decodeEvent, encodeEvent, Event, type EventInput } from "./Event.ts";
-import * as TaggedErrors from "./tagged-errors";
+import type * as Cloudflare from 'alchemy/Cloudflare';
+import { Option, Schema, Struct } from 'effect';
+import * as Effect from 'effect/Effect';
+import { decodeEvent, encodeEvent, Event, type EventInput } from './Event.ts';
+import * as TaggedErrors from './tagged-errors';
 
 /**
  * The append-only, ordered event log — the spine of the whole system.
@@ -29,6 +29,8 @@ import * as TaggedErrors from "./tagged-errors";
  */
 const ROW_MAX_BYTES = 1_800_000;
 
+const DEFAULT_READ_LIMIT = 256;
+
 /**
  * The log's schema. Two deliberate choices.
  *
@@ -46,28 +48,29 @@ const migration = `CREATE TABLE IF NOT EXISTS events (
    )`;
 
 export const AppendResponseSchema = Schema.Struct(
-  Struct.pick(Event.members[0].fields, ["seq", "at"]),
+  Struct.pick(Event.members[0].fields, ['seq', 'at']),
 );
+
+export const ReadCursorParams = Schema.Struct({
+  after: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  limit: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_READ_LIMIT)),
+  ),
+});
 
 export const ReadResponseSchema = Schema.Struct({
   events: Schema.Array(Schema.toType(Event)),
   nextCursor: Schema.Number,
+  head: Schema.Number,
   skipped: Schema.Number,
 });
 
-const DEFAULT_READ_LIMIT = 256;
-
 export const make = (sql: Cloudflare.Workers.SqlStorage) =>
   Effect.gen(function* () {
-    const query = <
-      T extends Record<string, string | number | ArrayBuffer | null>,
-    >(
+    const query = <T extends Record<string, string | number | ArrayBuffer | null>>(
       statement: string,
       ...bindings: ReadonlyArray<string | number | null>
-    ) =>
-      Effect.flatMap(sql.exec<T>(statement, ...bindings), (cursor) =>
-        cursor.toArray(),
-      );
+    ) => Effect.flatMap(sql.exec<T>(statement, ...bindings), (cursor) => cursor.toArray());
 
     yield* sql.exec(migration);
 
@@ -81,9 +84,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
          */
         const insert = encodeEvent(input);
         if (Option.isNone(insert)) {
-          return yield* Effect.die(
-            new Error(`unencodable event for kind ${input.kind}`),
-          );
+          return yield* Effect.die(new Error(`unencodable event for kind ${input.kind}`));
         }
 
         const bytes = new TextEncoder().encode(insert.value.payload).byteLength;
@@ -121,7 +122,12 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
         });
       });
 
-    const read = (after: number, limit = DEFAULT_READ_LIMIT) =>
+    const head = Effect.gen(function* () {
+      const [row] = yield* query<{ head: number | null }>(`SELECT MAX(seq) AS head FROM events`);
+      return row?.head ?? 0;
+    });
+
+    const read = ({ after, limit }: typeof ReadCursorParams.Type) =>
       Effect.gen(function* () {
         const rows = yield* query<typeof Event.Encoded>(
           `SELECT seq, kind, author, payload, at
@@ -141,7 +147,7 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           if (Option.isNone(decoded)) {
             skipped += 1;
 
-            yield* Effect.logWarning("dropping undecodable log entry", {
+            yield* Effect.logWarning('dropping undecodable log entry', {
               seq: row.seq,
               kind: row.kind,
             });
@@ -151,23 +157,27 @@ export const make = (sql: Cloudflare.Workers.SqlStorage) =>
           events.push(decoded.value);
         }
 
-        // TODO: fix this logic
-        const nextCursor = rows[rows.length - 1]?.seq ?? after;
+        const end = yield* head;
 
-        return ReadResponseSchema.make({ events, nextCursor, skipped });
+        const nextCursor = rows[rows.length - 1]?.seq ?? Math.min(after, end);
+
+        return ReadResponseSchema.make({
+          events,
+          nextCursor,
+          head: end,
+          skipped,
+        });
       });
 
     /**
-     * Entry count, which diverges from `head.seq` the moment anything is ever
+     * Entry count, which diverges from {@link head} the moment anything is ever
      * deleted. Exposed so callers never need to reach into `events` themselves
      * — the table is this module's and stays that way.
      */
     const count = Effect.gen(function* () {
-      const [row] = yield* query<{ rows: number }>(
-        `SELECT COUNT(*) AS rows FROM events`,
-      );
+      const [row] = yield* query<{ rows: number }>(`SELECT COUNT(*) AS rows FROM events`);
       return row?.rows ?? 0;
     });
 
-    return { append, read, count } as const;
+    return { append, read, head, count } as const;
   });

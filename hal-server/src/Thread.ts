@@ -1,12 +1,12 @@
-import * as Cloudflare from "alchemy/Cloudflare";
-import { Schema } from "effect";
-import * as Effect from "effect/Effect";
-import * as Headers from "effect/unstable/http/Headers";
-import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
-import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
-import * as Option from "effect/Option";
-import * as EventLog from "./EventLog.ts";
-import { encodeEventFrame, Event } from "./Event.ts";
+import * as Cloudflare from 'alchemy/Cloudflare';
+import { Schema } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Headers from 'effect/unstable/http/Headers';
+import * as HttpServerRequest from 'effect/unstable/http/HttpServerRequest';
+import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
+import * as Option from 'effect/Option';
+import * as EventLog from './EventLog.ts';
+import { encodeEventFrame, Event } from './Event.ts';
 
 /**
  * One conversation. Formerly `SessionDO`, and renamed for two reasons.
@@ -55,13 +55,26 @@ export const SubmitResultSchema = Schema.TaggedUnion({
 export type SubmitResult = typeof SubmitResultSchema.Type;
 
 /**
+ * Where a thread is up to.
+ *
+ * `seq` is the log's end; `entries` is how many rows it holds. They are equal
+ * exactly while the log is gapless, which — with no delete path before Phase 3
+ * compaction — it always should be. Reported together so that invariant can be
+ * observed from outside the object rather than inferred from a full replay.
+ */
+export const ThreadHeadSchema = Schema.Struct({
+  seq: Schema.Number,
+  entries: Schema.Number,
+});
+
+/**
  * Headers the `Api` Worker sets on the forwarded upgrade request once it has
  * resolved who is connecting. The object trusts them because only the Worker
  * can reach it.
  */
-export const AUTHOR_HEADER = "x-hal-author";
-export const CLIENT_HEADER = "x-hal-client";
-export const CURSOR_HEADER = "x-hal-cursor";
+export const AUTHOR_HEADER = 'x-hal-author';
+export const CLIENT_HEADER = 'x-hal-client';
+export const CURSOR_HEADER = 'x-hal-cursor';
 
 /**
  * What rides along with a hibernated socket. Three ids for three lifetimes:
@@ -82,7 +95,7 @@ type Attachment = {
 };
 
 export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
-  "Threads",
+  'Threads',
   Effect.gen(function* () {
     const state = yield* Cloudflare.Workers.DurableObjectState;
 
@@ -110,6 +123,30 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
           }
         });
 
+      const replay = Effect.fn(function* (socket: Cloudflare.WebSocket, after: number) {
+        let cursor = after;
+        let end = Number.POSITIVE_INFINITY;
+
+        do {
+          const decodedCursorParams = Schema.decodeSync(EventLog.ReadCursorParams)({
+            after: cursor,
+          });
+
+          const page = yield* log.read(decodedCursorParams);
+          for (const event of page.events) {
+            yield* socket.send(encodeEventFrame(event));
+          }
+
+          if (page.nextCursor <= cursor) {
+            console.log('No more events to be fetched.');
+            break;
+          }
+
+          cursor = page.nextCursor;
+          end = page.head;
+        } while (cursor < end);
+      });
+
       return {
         fetch: Effect.gen(function* () {
           const request = yield* HttpServerRequest.HttpServerRequest;
@@ -117,12 +154,8 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
           const clientId = Headers.get(request.headers, CLIENT_HEADER);
           const cursor = Headers.get(request.headers, CURSOR_HEADER);
 
-          if (
-            Option.isNone(author) ||
-            Option.isNone(clientId) ||
-            Option.isNone(cursor)
-          ) {
-            return HttpServerResponse.text("socket identity headers missing", {
+          if (Option.isNone(author) || Option.isNone(clientId) || Option.isNone(cursor)) {
+            return HttpServerResponse.text('socket identity headers missing', {
               status: 500,
             });
           }
@@ -131,10 +164,9 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
 
           const after = Number(cursor.value);
 
-          const page = yield* log.read(after);
-          for (const event of page.events) {
-            yield* socket.send(encodeEventFrame(event));
-          }
+          // Replay, then subscribe. Note that this is blocking for any other client
+          // that has joined this Durable Objects 'thread'.
+          yield* replay(socket, after);
 
           const attachment: Attachment = {
             socketId: crypto.randomUUID(),
@@ -154,22 +186,17 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
         ) {
           const attachment = socket.deserializeAttachment<Attachment>();
           if (!attachment) return;
-          const text =
-            typeof message === "string"
-              ? message
-              : new TextDecoder().decode(message);
+          const text = typeof message === 'string' ? message : new TextDecoder().decode(message);
 
           const input = {
-            kind: "message",
+            kind: 'message',
             author: attachment.author,
             payload: { text },
           } as const;
 
           const result = yield* log.append(input).pipe(
-            Effect.map((receipt) =>
-              SubmitResultSchema.cases.Accepted.make({ receipt }),
-            ),
-            Effect.catchTag("EntryTooLarge", (error) =>
+            Effect.map((receipt) => SubmitResultSchema.cases.Accepted.make({ receipt })),
+            Effect.catchTag('EntryTooLarge', (error) =>
               Effect.succeed(
                 SubmitResultSchema.cases.EntryTooLarge.make({
                   bytes: error.bytes,
@@ -179,7 +206,7 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
             ),
           );
 
-          if (result._tag === "Accepted") {
+          if (result._tag === 'Accepted') {
             yield* broadcast({ ...input, ...result.receipt });
           }
         }),
@@ -199,15 +226,13 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
         submit: (input) =>
           log
             .append({
-              kind: "message",
+              kind: 'message',
               author: input.author,
               payload: { text: input.text },
             })
             .pipe(
-              Effect.map((receipt) =>
-                SubmitResultSchema.cases.Accepted.make({ receipt }),
-              ),
-              Effect.catchTag("EntryTooLarge", (error) =>
+              Effect.map((receipt) => SubmitResultSchema.cases.Accepted.make({ receipt })),
+              Effect.catchTag('EntryTooLarge', (error) =>
                 Effect.succeed(
                   SubmitResultSchema.cases.EntryTooLarge.make({
                     bytes: error.bytes,
@@ -217,8 +242,21 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
               ),
             ),
 
-        read: (after: number, limit?: number) =>
-          Effect.annotateLogs(log.read(after, limit), { threadId }),
+        read: (after: number, limit?: number) => {
+          const decodedCursorParams = Schema.decodeSync(EventLog.ReadCursorParams)({
+            after,
+            limit,
+          });
+
+          return Effect.annotateLogs(log.read(decodedCursorParams), {
+            threadId,
+          });
+        },
+
+        head: () =>
+          Effect.map(Effect.all({ seq: log.head, entries: log.count }), (at) =>
+            ThreadHeadSchema.make(at),
+          ),
 
         /**
          * Tears the instance down: in-flight work fails, the isolate is
@@ -227,7 +265,7 @@ export default class Thread extends Cloudflare.Workers.DurableObject<Thread>()(
          * so the tests do not have to wait for Cloudflare to evict on its own
          * schedule.
          */
-        evict: () => state.abort("forced eviction"),
+        evict: () => state.abort('forced eviction'),
       };
     });
   }),

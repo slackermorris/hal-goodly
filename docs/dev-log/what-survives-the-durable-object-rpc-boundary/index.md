@@ -25,7 +25,7 @@ That is a real gap between the promise and the platform.
 say a tagged failure keeps its `_tag` and its own fields across the wire —
 `Effect.catchTag` is supposed to still match on the caller's side. But the
 same page is careful about which channel gets that guarantee: a Durable
-Object stub is a native structured-clone channel, and "*values* move by
+Object stub is a native structured-clone channel, and "_values_ move by
 structured clone" is the phrase it uses — not failures. A rejected call is not
 a value coming back; it is a promise settling in rejection, on a path Alchemy
 does not fully author itself. Whatever shape a rejection takes on that trip,
@@ -56,21 +56,18 @@ schema, then combined them into one union:
 
 ```typescript
 const AcceptedResultSchema = Schema.Struct({
-  _tag: Schema.tag("Accepted"),
+  _tag: Schema.tag('Accepted'),
   receipt: EventLog.ReceiptSchema,
 });
 
 const EntryTooLargeRejectedResultSchema = Schema.Struct({
-  _tag: Schema.Literal("Rejected"),
-  reason: Schema.Literal("EntryTooLarge"),
+  _tag: Schema.Literal('Rejected'),
+  reason: Schema.Literal('EntryTooLarge'),
   bytes: Schema.Number,
   limit: Schema.Number,
 });
 
-const SubmitResultSchema = Schema.Union([
-  AcceptedResultSchema,
-  EntryTooLargeRejectedResultSchema,
-]);
+const SubmitResultSchema = Schema.Union([AcceptedResultSchema, EntryTooLargeRejectedResultSchema]);
 ```
 
 `Api.ts` then had to read the encoded response itself. A status mapper

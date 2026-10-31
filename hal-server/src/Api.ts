@@ -1,17 +1,18 @@
-import * as Cloudflare from "alchemy/Cloudflare";
-import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
-import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
-import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
-import { Result, Schema } from "effect";
-import * as HttpApiError from "./HttpApiError.ts";
+import * as Cloudflare from 'alchemy/Cloudflare';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import * as HttpServerRequest from 'effect/unstable/http/HttpServerRequest';
+import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse';
+import { Result, Schema } from 'effect';
+import * as EventLog from './EventLog.ts';
+import * as HttpApiError from './HttpApiError.ts';
 import Thread, {
   AUTHOR_HEADER,
   CLIENT_HEADER,
   CURSOR_HEADER,
   SubmitResultSchema,
-} from "./Thread.ts";
-import { HttpRouter } from "effect/unstable/http";
+} from './Thread.ts';
+import { HttpRouter } from 'effect/unstable/http';
 
 /**
  * The entry Worker, and the *network* entry point — distinct from the domain
@@ -33,7 +34,7 @@ import { HttpRouter } from "effect/unstable/http";
  * rather than re-deriving auth.
  */
 export default class Api extends Cloudflare.Workers.Worker<Api>()(
-  "Api",
+  'Api',
   {
     main: import.meta.url,
     observability: {
@@ -59,7 +60,7 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
     build: process.env.WORKERD_INSPECTOR_ADDR
       ? {
           output: {
-            sourcemap: "inline",
+            sourcemap: 'inline',
             minify: false,
             // `URL` is a global in both Node and workerd, so this needs no
             // import — which matters, because this options object is itself
@@ -73,17 +74,15 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
   Effect.gen(function* () {
     const threads = yield* Thread;
 
-    const thread = HttpRouter.params.pipe(
-      Effect.map(({ id }) => threads.getByName(id!)),
-    );
+    const thread = HttpRouter.params.pipe(Effect.map(({ id }) => threads.getByName(id!)));
 
     const routes = HttpRouter.addAll([
-      HttpRouter.route("GET", "/health", HttpServerResponse.text("ok")),
+      HttpRouter.route('GET', '/health', HttpServerResponse.text('ok')),
 
-      HttpRouter.route("GET", "/threads/:id/socket", (request) =>
+      HttpRouter.route('GET', '/threads/:id/socket', (request) =>
         Effect.gen(function* () {
-          if (request.headers.upgrade !== "websocket") {
-            return HttpServerResponse.text("Expected Upgrade: websocket", {
+          if (request.headers.upgrade !== 'websocket') {
+            return HttpServerResponse.text('Expected Upgrade: websocket', {
               status: 426,
             });
           }
@@ -94,20 +93,18 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
           if (Result.isFailure(identity)) {
             return HttpServerResponse.text(
-              "expected ?author=<name>&client=<id> on the socket URL",
+              'expected ?author=<name>&client=<id>&after=<seq> on the socket URL, seq a non-negative integer',
               { status: 400 },
             );
           }
 
-          return yield* (yield* thread).fetch(
-            withIdentityHeaders(request, identity.success),
-          );
+          return yield* (yield* thread).fetch(withIdentityHeaders(request, identity.success));
         }),
       ),
 
       HttpRouter.route(
-        "POST",
-        "/threads/:id/submit",
+        'POST',
+        '/threads/:id/submit',
         Effect.gen(function* () {
           const payload = yield* Effect.result(
             HttpServerRequest.schemaBodyJson(SubmitMessagePayload),
@@ -115,13 +112,13 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
 
           if (Result.isFailure(payload)) {
             return HttpServerResponse.text(
-              "expected a JSON body of { text: string, author?: string }",
+              'expected a JSON body of { text: string, author?: string }',
               { status: 400 },
             );
           }
 
           const result = yield* (yield* thread).submit({
-            author: payload.success.author ?? "anonymous",
+            author: payload.success.author ?? 'anonymous',
             text: payload.success.text,
           });
 
@@ -131,18 +128,29 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
         }),
       ),
 
-      HttpRouter.route("GET", "/threads/:id/read", (request) =>
+      HttpRouter.route(
+        'GET',
+        '/threads/:id/read',
         Effect.gen(function* () {
-          const url = new URL(request.url, "http://hal.local");
-          const after = Number(url.searchParams.get("after") ?? "0");
-          const limit = url.searchParams.get("limit");
+          const query = yield* Effect.result(HttpServerRequest.schemaSearchParams(ReadQueryParams));
 
-          const result = yield* (yield* thread).read(
-            Number.isFinite(after) ? after : 0,
-            limit === null ? undefined : Number(limit),
-          );
+          if (Result.isFailure(query)) {
+            return HttpServerResponse.text(
+              'expected ?after=<seq>&limit=<n>, both non-negative integers',
+              { status: 400 },
+            );
+          }
+
+          const result = yield* (yield* thread).read(query.success.after, query.success.limit);
 
           return yield* HttpServerResponse.json(result);
+        }),
+      ),
+      HttpRouter.route(
+        'GET',
+        '/threads/:id/head',
+        Effect.gen(function* () {
+          return yield* HttpServerResponse.json(yield* (yield* thread).head());
         }),
       ),
 
@@ -161,8 +169,8 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
        * which is why it is still here to answer.
        */
       HttpRouter.route(
-        "GET",
-        "/threads/:id/evict",
+        'GET',
+        '/threads/:id/evict',
         Effect.gen(function* () {
           const outcome = yield* Effect.exit((yield* thread).evict());
           return yield* HttpServerResponse.json(
@@ -179,11 +187,9 @@ export default class Api extends Cloudflare.Workers.Worker<Api>()(
         HttpRouter.toHttpEffect,
         Effect.scoped,
         Effect.map(
-          Effect.catchTag("HttpServerError", (error) =>
-            error.reason._tag === "RouteNotFound"
-              ? Effect.succeed(
-                  HttpServerResponse.text("not found", { status: 404 }),
-                )
+          Effect.catchTag('HttpServerError', (error) =>
+            error.reason._tag === 'RouteNotFound'
+              ? Effect.succeed(HttpServerResponse.text('not found', { status: 404 }))
               : Effect.fail(error),
           ),
         ),
@@ -205,13 +211,13 @@ const withIdentityHeaders = (
   identity: {
     readonly author: string;
     readonly client: string;
-    readonly after: string;
+    readonly after: number;
   },
 ): HttpServerRequest.HttpServerRequest => {
   const raw = new Request(request.source as Request);
   raw.headers.set(AUTHOR_HEADER, identity.author);
   raw.headers.set(CLIENT_HEADER, identity.client);
-  raw.headers.set(CURSOR_HEADER, identity.after);
+  raw.headers.set(CURSOR_HEADER, String(identity.after));
   return HttpServerRequest.fromWeb(raw);
 };
 
@@ -227,10 +233,32 @@ const SocketIdentityParams = Schema.Struct({
    * `withDecodingDefaultKey`, not `withConstructorDefault`: the latter only
    * applies to `.make()`, and search params arrive through decode. The `Key`
    * variant fires on an absent key only, which is the only way a query
-   * string can omit a value.
+   * string can omit a value. Decoded to the log's own cursor here so a bad one
+   * is a 400 before the upgrade rather than a failure inside the object.
    */
-  after: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("0"))),
+  after: Schema.FiniteFromString.pipe(
+    Schema.decodeTo(EventLog.ReadCursorParams.fields.after),
+    Schema.withDecodingDefaultKey(Effect.succeed('0')),
+  ),
 });
+
+/**
+ * The `/read` query string, decoded into the log's own cursor params.
+ *
+ * This schema only knows about the wire: every field arrives as a string, and
+ * a key can be absent but never `undefined`, so `FiniteFromString` parses and
+ * `optionalKey` / `withDecodingDefaultKey` handle absence. What a valid cursor
+ * *is* — a non-negative integer, a defaulted page size — is
+ * `EventLog.ReadCursorParams`, and `decodeTo` runs its checks here so a bad
+ * cursor is a 400 at the edge rather than a failure inside the object.
+ *
+ * `limit` has no default of its own: an absent key passes through, and the
+ * log's default fills it.
+ */
+const ReadQueryParams = Schema.Struct({
+  after: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.succeed('0'))),
+  limit: Schema.optionalKey(Schema.FiniteFromString),
+}).pipe(Schema.decodeTo(EventLog.ReadCursorParams));
 
 const SubmitMessagePayload = Schema.Struct({
   text: Schema.String,

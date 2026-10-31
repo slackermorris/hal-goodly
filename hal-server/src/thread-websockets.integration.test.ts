@@ -1,14 +1,14 @@
-import * as Cloudflare from "alchemy/Cloudflare";
-import * as Vitest from "alchemy/Test/Vitest";
+import * as Cloudflare from 'alchemy/Cloudflare';
+import * as Vitest from 'alchemy/Test/Vitest';
 
-import * as Deferred from "effect/Deferred";
-import * as Effect from "effect/Effect";
-import * as Fiber from "effect/Fiber";
-import * as Queue from "effect/Queue";
-import * as Socket from "effect/unstable/socket/Socket";
-import Stack from "../alchemy.run.ts";
-import { decodeEventFrame } from "./Event.ts";
-import * as HttpWorker from "./test-support/HttpWorker.ts";
+import * as Deferred from 'effect/Deferred';
+import * as Effect from 'effect/Effect';
+import * as Fiber from 'effect/Fiber';
+import * as Queue from 'effect/Queue';
+import * as Socket from 'effect/unstable/socket/Socket';
+import Stack from '../alchemy.run.ts';
+import { decodeEventFrame, Event } from './Event.ts';
+import * as HttpWorker from './test-support/HttpWorker.ts';
 
 const { test, beforeAll, deploy } = Vitest.make({
   providers: Cloudflare.providers(),
@@ -26,48 +26,45 @@ const stack = beforeAll(deploy(Stack));
 const worker = Effect.flatMap(stack, ({ url }) => HttpWorker.make(url));
 
 test(
-  "thread broadcasts messages between peers, attributed to the sender",
+  'thread broadcasts messages between peers, attributed to the sender',
   Effect.gen(function* () {
     const { url } = yield* stack;
     // A fresh thread per run: a reused name would carry hibernated sockets
     // from earlier runs into the broadcast set.
-    const threadName = HttpWorker.uniqueThread("broadcast");
+    const threadName = HttpWorker.uniqueThread('broadcast');
 
-    const alice = yield* connect(socketUrl(url, threadName, "alice"));
-    const bob = yield* connect(socketUrl(url, threadName, "bob"));
+    const alice = yield* connect(socketUrl(url, threadName, 'alice'));
+    const bob = yield* connect(socketUrl(url, threadName, 'bob'));
 
-    yield* alice.send("hello bob");
+    yield* alice.send('hello bob');
 
     // What bob receives is the persisted event, `seq` included, not a string
     // built from the incoming frame.
     const received = yield* bob.next;
     expect(received).toEqual(
       expect.objectContaining({
-        kind: "message",
+        kind: 'message',
         seq: 1,
-        author: "alice",
-        payload: { text: "hello bob" },
+        author: 'alice',
+        payload: { text: 'hello bob' },
       }),
     );
-  }).pipe(
-    Effect.scoped,
-    Effect.provide(Socket.layerWebSocketConstructorGlobal),
-  ),
+  }).pipe(Effect.scoped, Effect.provide(Socket.layerWebSocketConstructorGlobal)),
   { timeout: 30_000 },
 );
 
 test(
-  "a message sent over a socket is appended to the log under its author",
+  'a message sent over a socket is appended to the log under its author',
   Effect.gen(function* () {
     const { url } = yield* stack;
-    const threadName = HttpWorker.uniqueThread("persist");
+    const threadName = HttpWorker.uniqueThread('persist');
 
     const { read } = yield* worker;
 
-    const alice = yield* connect(socketUrl(url, threadName, "alice"));
-    const bob = yield* connect(socketUrl(url, threadName, "bob"));
+    const alice = yield* connect(socketUrl(url, threadName, 'alice'));
+    const bob = yield* connect(socketUrl(url, threadName, 'bob'));
 
-    yield* alice.send("hello bob");
+    yield* alice.send('hello bob');
 
     // Bob's frame is the proof the object has handled the message. The handler
     // appends before it broadcasts, so once this arrives the row is committed
@@ -80,32 +77,29 @@ test(
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual(
       expect.objectContaining({
-        kind: "message",
+        kind: 'message',
         seq: 1,
-        author: "alice",
-        payload: { text: "hello bob" },
+        author: 'alice',
+        payload: { text: 'hello bob' },
       }),
     );
     expect(nextCursor).toBe(1);
-  }).pipe(
-    Effect.scoped,
-    Effect.provide(Socket.layerWebSocketConstructorGlobal),
-  ),
+  }).pipe(Effect.scoped, Effect.provide(Socket.layerWebSocketConstructorGlobal)),
   { timeout: 30_000 },
 );
 
 test(
-  "peers read from log on initial load",
+  'peers read from log on initial load',
   Effect.gen(function* () {
     const { url } = yield* stack;
-    const threadName = HttpWorker.uniqueThread("replay");
+    const threadName = HttpWorker.uniqueThread('replay');
 
-    const firstMessageAlice = "first entry";
-    const secondMessageAlice = "second entry";
-    const thirdMessageBob = "third entry";
+    const firstMessageAlice = 'first entry';
+    const secondMessageAlice = 'second entry';
+    const thirdMessageBob = 'third entry';
 
-    const bobAuthor = "bob";
-    const aliceAuthor = "alice";
+    const bobAuthor = 'bob';
+    const aliceAuthor = 'alice';
 
     const { submit } = yield* worker;
 
@@ -134,28 +128,25 @@ test(
     expect(aliceSaw.map((e) => e.seq)).toEqual([1, 2, 3]);
 
     // A cursor skips what the client already holds.
-    const late = yield* connect(socketUrl(url, threadName, "carol", "2"));
+    const late = yield* connect(socketUrl(url, threadName, 'carol', '2'));
     const lateSaw = yield* late.next;
     expect(lateSaw.seq).toBe(3);
-  }).pipe(
-    Effect.scoped,
-    Effect.provide(Socket.layerWebSocketConstructorGlobal),
-  ),
+  }).pipe(Effect.scoped, Effect.provide(Socket.layerWebSocketConstructorGlobal)),
   { timeout: 30_000 },
 );
 
 test(
-  "client reads past cursor",
+  'client reads past cursor',
   Effect.gen(function* () {
     const { url } = yield* stack;
-    const threadName = HttpWorker.uniqueThread("replay");
+    const threadName = HttpWorker.uniqueThread('replay');
 
-    const firstMessageAlice = "first entry";
-    const secondMessageAlice = "second entry";
-    const thirdMessageBob = "third entry";
+    const firstMessageAlice = 'first entry';
+    const secondMessageAlice = 'second entry';
+    const thirdMessageBob = 'third entry';
 
-    const bobAuthor = "bob";
-    const aliceAuthor = "alice";
+    const bobAuthor = 'bob';
+    const aliceAuthor = 'alice';
 
     const { submit } = yield* worker;
 
@@ -168,10 +159,8 @@ test(
       (payload) => submit({ threadName, ...payload }),
     );
 
-    const cursor = "2";
-    const aliceWsConnection = yield* connect(
-      socketUrl(url, threadName, aliceAuthor, cursor),
-    );
+    const cursor = '2';
+    const aliceWsConnection = yield* connect(socketUrl(url, threadName, aliceAuthor, cursor));
 
     const aliceSaw = yield* aliceWsConnection.next;
     expect(aliceSaw.payload.text).toEqual(thirdMessageBob);
@@ -179,16 +168,16 @@ test(
 );
 
 test(
-  "the log is built from durable storage on the next request",
+  'the log is built from durable storage on the next request',
   Effect.gen(function* () {
-    const messageAlice = "I hope this message survives";
+    const messageAlice = 'I hope this message survives';
 
     const { url } = yield* stack;
-    const threadName = HttpWorker.uniqueThread("persist");
+    const threadName = HttpWorker.uniqueThread('persist');
 
     const { evict } = yield* worker;
 
-    const alice = yield* connect(socketUrl(url, threadName, "alice"));
+    const alice = yield* connect(socketUrl(url, threadName, 'alice'));
     yield* alice.send(messageAlice);
 
     yield* evict(threadName);
@@ -198,17 +187,57 @@ test(
   }),
 );
 
-const socketUrl = (
-  baseUrl: string,
-  threadName: string,
-  author: string,
-  after: string = "0",
-) => {
+test(
+  'a client further behind than one page replays all of it before going live',
+  Effect.gen(function* () {
+    const bobAuthor = 'bob';
+    const aliceAuthor = 'alice';
+    const EVENTS_EXCESS_DEFAULT_READ_LIMIT = 500;
+    const TOTAL_EVENTS = EVENTS_EXCESS_DEFAULT_READ_LIMIT + 1;
+
+    const { url } = yield* stack;
+    const threadName = HttpWorker.uniqueThread('deep-replay');
+
+    const { submit, head } = yield* worker;
+
+    // 1. Seed the event log.
+    yield* Effect.forEach(
+      Array(EVENTS_EXCESS_DEFAULT_READ_LIMIT).fill({
+        text: 'placeholder text',
+        author: aliceAuthor,
+      }),
+      (payload) => submit({ threadName, ...payload }),
+    );
+    // 2. Ensure there is an event log entry that signals we are at the "excess" end.
+    yield* submit({ threadName, text: 'last submission', author: bobAuthor });
+
+    const logHead = yield* head(threadName);
+    expect(logHead.entries).toBe(TOTAL_EVENTS);
+
+    // 3. Establish WS connection for Alice.
+    const alice = yield* connect(socketUrl(url, threadName, aliceAuthor));
+
+    // 4. Iterate through frames and confirm that Alice gets all of the events.
+    const frames: Array<typeof Event.Type> = [];
+    yield* Effect.whileLoop({
+      while: () => frames.length < TOTAL_EVENTS,
+      body: () => alice.next,
+      step: (frame) => {
+        frames.push(frame);
+      },
+    }).pipe(Effect.timeout('15 seconds'));
+
+    expect(frames.at(-1)?.payload.text).toBe('last submission');
+  }).pipe(Effect.scoped, Effect.provide(Socket.layerWebSocketConstructorGlobal)),
+  { timeout: 60_000 },
+);
+
+const socketUrl = (baseUrl: string, threadName: string, author: string, after: string = '0') => {
   const url = new URL(`${baseUrl}/threads/${threadName}/socket`);
-  url.protocol = url.protocol.replace(/^http/, "ws");
-  url.searchParams.set("author", author);
-  url.searchParams.set("client", crypto.randomUUID());
-  url.searchParams.set("after", after);
+  url.protocol = url.protocol.replace(/^http/, 'ws');
+  url.searchParams.set('author', author);
+  url.searchParams.set('client', crypto.randomUUID());
+  url.searchParams.set('after', after);
   return url.toString();
 };
 
@@ -256,7 +285,7 @@ const connect = (url: string) =>
     yield* Effect.raceFirst(
       Deferred.await(opened),
       Effect.flatMap(Fiber.join(running), () =>
-        Effect.die(new Error("socket closed before it opened")),
+        Effect.die(new Error('socket closed before it opened')),
       ),
     );
 

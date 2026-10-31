@@ -111,9 +111,9 @@ it is the version to write, because a session that quietly loses an entry during
 replay is indistinguishable from a cursor bug.
 
 This sits in tension with a rule already recorded in the
-[SDD](../../sdd.md): *a malformed or unknown event kind is rejected at the
+[SDD](../../sdd.md): _a malformed or unknown event kind is rejected at the
 boundary rather than persisted, because the log is authoritative and cannot be
-allowed to hold garbage*. The two are not in conflict once you notice they act
+allowed to hold garbage_. The two are not in conflict once you notice they act
 at opposite ends — **strict on write, forgiving on read.** The write gate is
 what keeps garbage out; the read tolerance is what stops yesterday's garbage,
 written before the gate was tight, from making a session unopenable. The event

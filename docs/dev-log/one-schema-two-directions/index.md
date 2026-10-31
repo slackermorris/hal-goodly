@@ -52,9 +52,7 @@ column into a single derivation of the domain shape:
 ```typescript
 const MessagePayload = Schema.Struct({ text: Schema.String });
 
-const MessagePayloadFromJsonString = Schema.fromJsonString(
-  Schema.toCodecJson(MessagePayload),
-);
+const MessagePayloadFromJsonString = Schema.fromJsonString(Schema.toCodecJson(MessagePayload));
 ```
 
 The one-line mental model: `toCodecJson` answers "what should this value look
