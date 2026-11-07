@@ -58,7 +58,7 @@ example. Code review uses an adversarial pattern across several independent agen
 
 **R4 — Heavy OTel instrumentation showing where effort is spent.** Not "what happened" but
 "what did that cost". Tokens, wall time, sandbox seconds, retries, and gate failures,
-attributed to session, task, agent type, gate, and model.
+attributed to thread, task, agent type, gate, and model.
 
 **R5 — Effect TS**, as the language for the whole system rather than a utility library in
 one corner.
@@ -113,7 +113,7 @@ storage, hibernation, and alarms defeats the purpose of building it.
 ### 1. Executive Summary
 
 Hal is a personal engineering agent on Cloudflare, written in Effect, whose architecture
-rests on one primitive: **an append-only, ordered event log per session, held in Durable
+rests on one primitive: **an append-only, ordered event log per thread, held in Durable
 Object SQLite.** Streaming, multiplayer, reconnection, durable task resumption, effort
 accounting, and change recording are all projections of that one log rather than separate
 mechanisms — which is precisely what the previous two attempts lacked and why they each
@@ -172,20 +172,21 @@ prompt, which matters because prompts can be talked out of things.
                  └───────┬────────────────────────────────────┘
                          │
       ┌──────────────────▼──────────────────────────────────────┐
-      │  UserDO — one per human · near-immortal, mostly idle    │
-      │  identity · session index · notify channels · schedule  │
+      │  Agent — one per human · near-immortal, mostly idle     │
+      │  identity · thread index · notify channels · schedule   │
+      │  CONTROL PATH ONLY — never carries a message            │
       └──────────────────┬──────────────────────────────────────┘
-                         │ owns
+                         │ resolves which thread
       ┌──────────────────▼──────────────────────────────────────┐
-      │  SessionDO — one per conversation                       │
+      │  Thread — one per conversation                          │
       │  ★ EVENT LOG (SQLite, ordered by seq)                   │
       │    participants + attribution                           │
-      │    WebSocket hibernation fan-out · replay from cursor    │
-      │    turn loop · compaction                               │
+      │    WebSocket hibernation fan-out · replay from cursor   │
+      │    turn loop                                            │
       └──────────────────┬──────────────────────────────────────┘
                          │ dispatches (registry lookup + props)
       ┌──────────────────▼──────────────────────────────────────┐
-      │  TaskDO — one per delegated task · ephemeral            │
+      │  Task — one per delegated task · ephemeral              │
       │  checkpoint table · alarms · TTL reaper                 │
       │  owns exactly ONE sandbox lease                         │
       └──────────────────┬──────────────────────────────────────┘
@@ -230,19 +231,19 @@ both good: one dependency instead of two with overlapping Durable Object abstrac
 | Module             | Owns                                                                                                                                | Borrowed / built                   |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | **InfraStack**     | Every Cloudflare resource declared in Effect; exports the typed handles the app consumes                                            | Alchemy                            |
-| **SessionLog** ★   | Append, read-from-cursor, compact. The events schema. The only writer of conversation truth                                         | Built on borrowed DO storage       |
+| **EventLog** ★     | Append, read-from-cursor, head. The events schema. The only writer of conversation truth                                            | Built on borrowed DO storage       |
 | **Telemetry**      | Span conventions, the `effort.*` attribute set, correlation ids joining spans to gateway records                                    | Built on Effect's tracer           |
 | **Capabilities**   | The tagged interfaces sub-agents depend on — read a diff, exec in a sandbox, use git, drive a browser. _This is the security model_ | Built                              |
 | **SandboxLease** ★ | Acquire/release of one sandbox flavour, scope-bound, plus an independent reaper                                                     | Built on borrowed containers       |
 | **SecretBroker** ★ | Egress allowlist and credential substitution at the network layer                                                                   | Built (separate Worker)            |
 | **AgentRegistry**  | Capability descriptors per agent type: model, flavour, allowed hosts, secret _names_                                                | Built on borrowed D1               |
 | **ModelGateway**   | Model calls through AI Gateway as an Effect service, streaming deltas to a log                                                      | Built on borrowed AI Gateway       |
-| **SessionDO**      | The log, socket fan-out, participants, turn loop                                                                                    | Built on borrowed DO + hibernation |
-| **TaskDO**         | Durable state machine for one task; owns one lease                                                                                  | Built on borrowed DO + alarms      |
-| **UserDO**         | Identity, session index, notification channels, schedule table                                                                      | Built on borrowed DO + alarms      |
+| **Thread**         | Owns one `EventLog`; socket fan-out, participants, turn loop. One per conversation                                                  | Built on borrowed DO + hibernation |
+| **Task**           | Durable state machine for one task; owns one lease                                                                                  | Built on borrowed DO + alarms      |
+| **Agent**          | Identity, thread index, notification channels, schedule table. The domain entry point, on the control path only                     | Built on borrowed DO + alarms      |
 | **DurableStep**    | Run-once-and-remember, retry policy, resume after eviction. The workflow replacement                                                | Built                              |
 | **TurnLoop**       | Assemble context from the log, call the model, stream deltas, dispatch tool calls                                                   | Built                              |
-| **Dispatcher**     | Tool call → registry lookup → TaskDO with unforgeable authorisation context                                                         | Built                              |
+| **Dispatcher**     | Tool call → registry lookup → Task with unforgeable authorisation context                                                           | Built                              |
 | **Gate** ★         | A quality gate as a value returning structured findings                                                                             | Built                              |
 | **ReviewPanel**    | Independent lenses, refute-by-default, majority verdict, cost recorded per lens                                                     | Built                              |
 | **SkillPackage**   | Resolve a versioned skill into a sandbox                                                                                            | Built on Artifacts                 |
@@ -253,12 +254,12 @@ both good: one dependency instead of two with overlapping Durable Object abstrac
 | **Web client**     | Chat, cursor-based resume, and an effort view                                                                                       | Built                              |
 
 Five modules are deep — a stable interface hiding real machinery, testable in isolation:
-`SessionLog`, `SandboxLease`, `SecretBroker`, `Gate`, `DurableStep`. Those five are where
+`EventLog`, `SandboxLease`, `SecretBroker`, `Gate`, `DurableStep`. Those five are where
 design effort belongs.
 
 Two are flagged as **suspiciously shallow** and should be resisted until they earn
 themselves: `Notifier` is a thin wrapper over an outbound request and probably starts life
-as a method on `SessionDO`; `SkillPackage` may be nothing more than a clone plus a schema
+as a method on `Thread`; `SkillPackage` may be nothing more than a clone plus a schema
 check, in which case it is a function, not a module. Adding indirection here would buy
 nothing.
 
@@ -268,20 +269,31 @@ Each phase has an exit test. The ordering is deliberate: **the log and the telem
 before the intelligence**, because neither can be retrofitted and neither needs a model to
 validate.
 
-| Phase                                       | Scope                                                                                               | Exit test                                                                                                                           |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **0 — Foundation** — _delivered, see below_ | Monorepo, Effect v4, Alchemy 2 stack provisioning one Worker and one Durable Object                 | An echo round-trips through an Effect runtime at a DO entrypoint, with Alchemy-declared bindings typed end to end                   |
-| **1 — The spine**                           | `SessionLog`, `SessionDO`, hibernating socket fan-out, replay from cursor, participants. **No AI.** | Two clients, one session. Kill one mid-exchange; on reconnect it replays exactly what it missed, in order, with correct attribution |
-| **2 — Observability**                       | `Telemetry`, `effort.*` conventions, OTel export, local effort query over the log                   | A span tree for a whole session, with effort attributed per span. Costs are zero — the point is that the plumbing is proven         |
-| **3 — First turn**                          | `ModelGateway`, `TurnLoop`, deltas batched into the log, compaction on turn end                     | A real streamed conversation that survives a mid-stream disconnect, and whose token cost appears in the effort query                |
-| **4 — Lifecycle**                           | `SandboxLease` under scope, TTL reaper, `TaskDO`, `DurableStep`                                     | Kill the fiber mid-run: no orphan container. Evict the DO mid-run: the reaper catches it. Resume: completed steps do not re-run     |
-| **5 — First real task**                     | `SecretBroker`, `AgentRegistry`, git capability, clone → change → push → PR                         | A merged pull request where the sandbox never held a credential, provable from the broker's logs                                    |
-| **6 — Gates**                               | `Gate`, lint/typecheck/test gates, preview screenshots, `ArtifactStore`                             | A PR that arrives carrying its own evidence, and a failing gate whose structured findings drive a successful retry                  |
-| **7 — Adversarial review**                  | `ReviewPanel`, lenses, refute-by-default, `SkillPackage` (`mr-review`)                              | A panel that catches a defect the deterministic gates passed, with per-lens cost recorded so the panel can be judged on value       |
-| **8 — Autonomy**                            | `ScheduleRunner`, `WebhookIngress`, `Notifier`                                                      | An external event, with no human in the loop at the start, produces a reviewable PR and a notification                              |
+| Phase                                       | Scope                                                                                          | Exit test                                                                                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **0 — Foundation** — _delivered, see below_ | Monorepo, Effect v4, Alchemy 2 stack provisioning one Worker and one Durable Object            | An echo round-trips through an Effect runtime at a DO entrypoint, with Alchemy-declared bindings typed end to end                  |
+| **1 — The spine**                           | `EventLog`, `Thread`, hibernating socket fan-out, replay from cursor, participants. **No AI.** | Two clients, one thread. Kill one mid-exchange; on reconnect it replays exactly what it missed, in order, with correct attribution |
+| **2 — Observability**                       | `Telemetry`, `effort.*` conventions, OTel export, local effort query over the log              | A span tree for a whole thread, with effort attributed per span. Costs are zero — the point is that the plumbing is proven         |
+| **3 — First turn**                          | `ModelGateway`, `TurnLoop`, deltas batched into the log, **compaction** on turn end            | A real streamed conversation that survives a mid-stream disconnect, and whose token cost appears in the effort query               |
+| **4 — Lifecycle**                           | `SandboxLease` under scope, TTL reaper, `Task`, `DurableStep`                                  | Kill the fiber mid-run: no orphan container. Evict the DO mid-run: the reaper catches it. Resume: completed steps do not re-run    |
+| **5 — First real task**                     | `SecretBroker`, `AgentRegistry`, git capability, clone → change → push → PR                    | A merged pull request where the sandbox never held a credential, provable from the broker's logs                                   |
+| **6 — Gates**                               | `Gate`, lint/typecheck/test gates, preview screenshots, `ArtifactStore`                        | A PR that arrives carrying its own evidence, and a failing gate whose structured findings drive a successful retry                 |
+| **7 — Adversarial review**                  | `ReviewPanel`, lenses, refute-by-default, `SkillPackage` (`mr-review`)                         | A panel that catches a defect the deterministic gates passed, with per-lens cost recorded so the panel can be judged on value      |
+| **8 — Autonomy**                            | `ScheduleRunner`, `WebhookIngress`, `Notifier`                                                 | An external event, with no human in the loop at the start, produces a reviewable PR and a notification                             |
 
 Phases 0–2 are committed scope. Everything after is designed here so the log schema does
 not have to migrate later, but is not a commitment.
+
+**Compaction moved from Phase 1 to Phase 3**, and the earlier draft placing it in Phase 1
+was a category error worth naming. Compaction is a **context window** mechanism, not a
+storage one: the Agents SDK triggers it on a token threshold and writes summaries to a
+table separate from the messages they summarise, which is a derived view rather than a
+mutation of history. There is no context window before Phase 3 and therefore nothing for it
+to do, and a Phase 1 log with no delete path is simpler in a way that shows up directly in
+the read result — one shape rather than a `Replay` / `Truncated` union with a floor. The
+cost is that R2's "conversation storage must not grow without bound" is unanswered until
+Phase 3. Accepted: under C4 the operator is one person, and the growth driver is batched
+token deltas, which arrive with the same phase that answers them.
 
 #### Phase 0 — delivered, 2026-08-02
 
@@ -292,12 +304,12 @@ Vitest 4. `npm run check` is green: format, lint, typecheck, and unit tests.
 **Both halves of the exit criterion are met.**
 
 - **"Bindings typed end to end" — proven by the typechecker rather than a test.**
-  The Worker obtains its `Sessions` client by yielding the same declaration that provisions
+  The Worker obtains its `Threads` client by yielding the same declaration that provisions
   the namespace, so a mismatch is a compile error. There is no wrangler config and no
   generated environment type in the repository at all.
 - **"An echo round-trips" — running.** `npm run test:integration` stands the stack up in
   local workerd and drives it over HTTP, asserting that the echo comes back formatted, that
-  the counter advances across requests on one session, and that a different session name is
+  the counter advances across requests on one thread, and that a different thread name is
   a different instance whose counter starts from its own zero. The `AuthError` that blocked
   it at first was exactly what it looked like: Alchemy resolves a Cloudflare account before
   planning even in local mode, so the suite needs credentials and is therefore opt-in —
@@ -313,18 +325,26 @@ gives it a second consumer.
 
 ### 3. Requirements Analysis
 
-**R1 — Multiplayer across devices — ✅.** All sockets for a session route to one Durable
+**R1 — Multiplayer across devices — ✅.** All sockets for a thread route to one Durable
 Object, so shared state needs no coordination layer. Hibernation keeps idle connections
 free, and Alchemy's hibernating socket wrapper carries serialisable attachments, which is
 how author identity survives eviction — the exact problem that makes naive attribution
-break. Reconnection is a cursor. Keying by session rather than user is what allows a
-session to have several participants; the prototype had already drifted this way, so it is
-a small change.
+break. Reconnection is a cursor. Keying by thread rather than user is what allows a
+conversation to have several participants; the prototype had already drifted this way, so
+it is a small change.
+
+The subtle part is not the fan-out but the **join**: a reconnecting client must be replayed
+from its cursor and then attached to the live stream without dropping an entry between the
+two or delivering one twice. A Durable Object turn does not yield, so attaching the socket
+and reading the log's head are atomic with respect to any append — no buffer and no lock.
+That property only holds while the sockets and the log sit in the same object, which is the
+strongest argument for keeping the log on `Thread` rather than one tier up on `Agent`.
 
 **R2 — Lifecycle control — ✅, with one caveat held open.** One task, one sandbox, one
 owner, one lifetime. Scoped acquire/release guarantees the release runs on success,
 failure, and interruption — that last case is the one that leaks in promise-based code.
-Compaction bounds storage growth. **The caveat: no runtime-level guarantee survives the DO
+**Conversation storage growth is, as of this revision, unanswered** — see the compaction
+note under Phase 3 below. **The caveat: no runtime-level guarantee survives the DO
 being evicted between acquire and release**, which is why an independent reaper alarm exists
 rather than being treated as belt-and-braces paranoia. Both mechanisms are required; either
 alone is insufficient.
@@ -372,10 +392,10 @@ are themselves infrastructure. The caveat is **Durable Object migrations** — c
 and SQLite schema changes are the sharp edge of any Cloudflare IaC, and with three DO
 classes each holding real data this will need care and probably some hand-holding.
 
-**R7 — Async work and durable resumption — ✅.** A task returns immediately; `TaskDO` sets
+**R7 — Async work and durable resumption — ✅.** A task returns immediately; `Task` sets
 an alarm, wakes, checks external state, appends, and either advances or re-arms. Sleeping
 is free. Completion appends to the log, which fans out to live sockets and otherwise
-notifies. Recurrence is a schedule table on `UserDO` driven by a single alarm — a
+notifies. Recurrence is a schedule table on `Agent` driven by a single alarm — a
 declarative description executed by a durable executor.
 
 ### 4. Constraints Analysis
@@ -402,7 +422,7 @@ screenshots go through a real deployed URL rather than a local server. Cheap one
 screenshots can come from the browser binding; genuine UI driving needs the container.
 
 **C4 — personal budget — respected by three mechanisms and one measurement.** Scoped
-release, reaper alarm, and a per-session concurrency cap; plus per-gate cost recording so
+release, reaper alarm, and a per-thread concurrency cap; plus per-gate cost recording so
 the expensive parts can be judged rather than guessed at. The measurement is the part
 usually missing.
 
@@ -428,9 +448,9 @@ in.
 alternative — persist messages one way, stream progress another, trace a third — is what
 both previous attempts did, and it is the direct cause of every symptom in the Problem
 section. One ordered log means one mechanism serves streaming, multiplayer, resumption,
-audit, and effort accounting. The cost is that append throughput and compaction become
-load-bearing concerns that must be got right early, and that a schema mistake here is
-expensive to change later. That is precisely why Phase 1 exists and why later phases are
+audit, and effort accounting. The cost is that append throughput becomes a load-bearing
+concern that must be got right early, and that a schema mistake here is expensive to change
+later. That is precisely why Phase 1 exists and why later phases are
 designed now.
 
 **No Workers Workflows.** Alternatives considered: use them as designed and give up token
@@ -447,7 +467,30 @@ them without disturbing the design — as long as it stays off the streaming pat
 model and is why lifetimes were undefined. Splitting by natural lifetime — human,
 conversation, task — gives each tier an obvious retention policy and makes "who owns this
 sandbox" answerable. Cost: more cross-object RPC, and a task's events must be relayed to
-the session log rather than written directly, which is one extra hop on the streaming path.
+the thread log rather than written directly, which is one extra hop on the streaming path.
+
+**`Agent` is on the control path only.** It answers "which thread", "what is scheduled",
+"where do I notify"; it never carries a message. Stated as a rule because the failure mode
+is gradual: an agent that starts relaying messages becomes the prototype's god-object again
+one convenience method at a time. Note that this makes the phrase "entry point" ambiguous
+and the ambiguity is worth holding — the **network** entry point is the Worker, which
+resolves identity before anything downstream sees a request; the **domain** entry point is
+`Agent`. Merging them was considered and rejected: putting the log in `Agent` either drags
+every socket for every conversation into one isolate, or separates the sockets from the log
+and forfeits the atomic join described under R1.
+
+**Tier names: `Agent` / `Thread` / `Task`, replacing `UserDO` / `SessionDO` / `TaskDO`.**
+Two reasons, recorded because the rename is cheap now and expensive later (see the
+migration risk below). First, "session" carries the wrong lifetime — in web vocabulary it
+is a connection that dies with the tab, whereas this object is specifically the thing that
+outlives one, and the Worker will terminate Cloudflare Access, which has sessions in the
+other sense. Second, the Cloudflare Agents SDK — the closest prior art — uses `Agent` for
+the addressable object and `Session` for a conversation stored _inside_ it, many per
+instance. Keeping "session" for the object itself would have inverted the cardinality for
+anyone reading both. `Thread` is unused by that SDK, so it is free namespace. The same
+convention explains `EventLog` over `SessionLog`: that SDK names its data structures for
+the mechanism (`resumable-stream`, `turn-queue`, `orphan-store`) and never for the object
+that owns them, and a log named after its host is a sign the two were never separated.
 
 **Capabilities as layers, rather than prompt-level tool restriction.** The alternative is
 handing every sub-agent a broad toolset and constraining it by instruction. Under prompt
@@ -540,7 +583,7 @@ test is deliberately an eviction test.
 **Sandbox cost and orphan containers.** Per-second billing, an agent that can spawn
 agents, and a single personal budget.
 _Impact: High. Likelihood: Medium._ **Mitigation:** three independent mechanisms — scoped
-release, reaper alarm, per-session concurrency cap — plus a hard spend alert outside the
+release, reaper alarm, per-thread concurrency cap — plus a hard spend alert outside the
 system. Phase 4's exit test is explicitly adversarial about this, and the reaper is treated
 as load-bearing rather than a safety net.
 
@@ -551,7 +594,7 @@ implementation to fall back to.
 _Impact: High. Likelihood: Medium._ **Mitigation:** pin exactly — no carets on either
 Alchemy or Effect — and treat upgrades as deliberate work with the phase exit tests as the
 regression suite. Keep Alchemy's idioms at the entrypoint boundary rather than letting them
-spread through domain code, so `SessionLog` and the capability interfaces stay portable.
+spread through domain code, so `EventLog` and the capability interfaces stay portable.
 Read the installed source rather than treating it as opaque; the published tag lagging its
 own examples makes that mandatory, not virtuous.
 _This risk replaces the first draft's `effect-cf` risk, which is struck along with the
@@ -561,7 +604,7 @@ dependency._
 unbounded growth degrades DO storage. Naive per-token appends would be both slow and
 costly.
 _Impact: High. Likelihood: Medium._ **Mitigation:** batch appends rather than writing per
-token; make compaction a Phase 1 requirement rather than a later cleanup; design the schema
+token; design the schema
 against the _later_ phases' needs — review findings, gate results, artifact references —
 which is a stated reason for documenting the full end state now.
 
@@ -580,7 +623,10 @@ Phase 7 with measured numbers.
 new IaC integration. Renames and schema changes are the known sharp edge.
 _Impact: Medium. Likelihood: Medium._ **Mitigation:** settle class names in Phase 0 before
 any data exists; keep a documented manual migration path; do not assume the tool will
-handle a rename.
+handle a rename. **Taken:** the wire name moved from `Sessions` to `Threads` at the end of
+Phase 0, deliberately while the only data was test fixtures. A stack deployed under the old
+name has an orphaned `Sessions` namespace and needs a destroy-and-redeploy rather than an
+in-place update; that is the whole reason the rename happened now.
 
 **Adversarial review may not pay for itself.** It could add cost and latency without
 catching much beyond what deterministic gates already catch.
@@ -618,19 +664,22 @@ workerd rather than at the edge, and rides out the Cloudflare cold-start window.
 even the local mode resolves a Cloudflare account before planning, so stack tests need
 credentials and must therefore be opt-in, leaving the default test run credential-free.
 
-**SessionLog — append, replay-from-cursor, compaction.** The spine, so these come first and
-must fail loudly.
+**EventLog — append and replay-from-cursor.** The spine, so these come first and must fail
+loudly.
 
 - Sequence numbers are strictly monotonic and gapless under concurrent appends from the turn
   loop and a task relay simultaneously.
 - Replay from an arbitrary cursor returns exactly the missed entries, in order, with none
-  duplicated and none dropped — including a cursor that predates a compaction.
-- Compaction preserves the final message, the summary, and every artifact reference, while
-  removing token deltas; the post-compaction log must still satisfy the replay property.
+  duplicated and none dropped.
+- A client that reconnects while an append is in flight is neither shown a gap nor sent a
+  duplicate — the replay-then-subscribe join, which is the only genuinely racy part of the
+  fan-out.
 - Author attribution survives a hibernation cycle, exercised through schema-checked socket
   attachments rather than in-memory state.
 - A malformed or unknown event kind is rejected at the boundary rather than persisted,
   because the log is authoritative and cannot be allowed to hold garbage.
+- A row the current schema cannot decode costs exactly one entry and is counted, rather
+  than being skipped silently or failing the whole replay.
 
 **SandboxLease — teardown under interrupt.** The test that protects the budget.
 
@@ -639,7 +688,7 @@ must fail loudly.
   surfaced rather than swallowed.
 - Eviction between acquire and release — the case no scope can catch — is caught by the
   reaper, which is asserted as an independent behaviour, not as an afterthought.
-- The per-session concurrency cap refuses a lease rather than queueing unboundedly.
+- The per-thread concurrency cap refuses a lease rather than queueing unboundedly.
 - No path leaves a lease recorded as held with no live container, and none leaves a live
   container with no recorded lease. Both directions matter; only one is obvious.
 

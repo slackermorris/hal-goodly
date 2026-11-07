@@ -11,6 +11,34 @@
   "js/ts.tsdk.path": "node_modules/typescript/lib",
   "js/ts.preferences.autoImportFileExcludePatterns": ["repos/**"],
 
+  // Lets the Test Explorer's "Debug Test" reach Worker code, not just test code.
+  //
+  // 
+  // "Debug Test" attaches Node's debugger to the Vitest runner, which covers the
+  // test file but not any of the Alchemy stack, which runs in a workerd process.
+  //
+  // These two vars are picked up by an Alchemy patch and used to spawn a workerd
+  // process with an inspectable address that a debugger can attach to.
+  // 
+  // Api.ts / Thread.ts / EventLog.ts — those run in workerd, a
+  // separate process. These two vars make the runner open a workerd inspector on
+  // 9230 and then hold once the stack is up, which is the window in which you run
+  // "Attach to workerd (Worker code)" from the Run & Debug panel.
+  //
+  // `debugNodeEnv` (as opposed to `nodeEnv`) applies ONLY when debugging, so a
+  // normal Test Explorer run is untouched.
+  //
+  // 9230, NOT 9229: `vitest.debuggerPort` defaults to 9229, so that port is
+  // already taken by the extension's own Node debugger during "Debug Test".
+  // Pointing workerd at it means the inspector fails to bind and the attach
+  // config silently lands on the Node runner instead of the Worker — which looks
+  // exactly like "breakpoints don't work". Keep the two debuggers on separate
+  // ports.
+  "vitest.debugNodeEnv": {
+    "WORKERD_INSPECTOR_ADDR": "127.0.0.1:9230",
+    "WORKERD_DEBUG_WAIT_MS": "15000"
+  },
+
   "files.exclude": {
     "repos/**": true
   },

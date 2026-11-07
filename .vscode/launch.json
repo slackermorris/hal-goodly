@@ -1,0 +1,50 @@
+{
+  // Only one profile is needed here, because the Vitest extension already
+  // covers the other half.
+  //
+  // TEST code (thread.integration.test.ts, Effect pipelines, assertions) runs
+  // in Node — use the extension's "Debug Test" from the gutter or the Test
+  // Explorer. No launch config required.
+  //
+  // WORKER code (Api.ts, Thread.ts, EventLog.ts) runs in workerd: a separate
+  // process with its own V8 isolate, reached over HTTP. Node's debugger cannot
+  // see into it, so it needs its own session — this one.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Port 9230, not the usual 9229: `vitest.debuggerPort` defaults to 9229,
+      // so the extension's own Node debugger already owns it during "Debug
+      // Test". Workerd registers inspector on port 9230.
+      //
+      // The bundle carries its own inline source map with absolute source
+      // paths (see the `build` override in src/Api.ts), so there is nothing to
+      // anchor and no `sourceMapPathOverrides` table to maintain — the debugger
+      // resolves straight to the files on disk.
+      //
+      // Do NOT try to replace that override with `cwd` + `outFiles` pointed at
+      // .alchemy/bundles/Api. The `sourcemap: "hidden"` map really is on disk
+      // and really does map correctly (verified over CDP), but workerd names
+      // its scripts with a bare URL ("Api.js") that js-debug will not resolve
+      // to a file, so it never reads the sibling .map and breakpoints go
+      // hollow. Tried; reverted.
+      //
+      // `resolveSourceMapLocations: null` disables the filter that would
+      // otherwise discard the map, since it matches on where the map lives —
+      // and workerd serves it inline under that same bare URL.
+      //
+      // `restart` reattaches across the Durable Object evictions the suite
+      // deliberately triggers. The two `...ChildProcesses` flags keep js-debug
+      // from wandering off the user worker into workerd's other inspector
+      // targets (loopback:fetcher, cache, plugin:entry).
+      "name": "Attach to workerd (Worker code)",
+      "type": "node",
+      "request": "attach",
+      "port": 9230,
+      "resolveSourceMapLocations": null,
+      "restart": { "delay": 500, "maxAttempts": 60 },
+      "attachExistingChildren": false,
+      "autoAttachChildProcesses": false,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

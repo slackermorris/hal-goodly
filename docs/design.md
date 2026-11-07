@@ -60,3 +60,9 @@ schema does not have to migrate, but are not commitments.
 - **Three Durable Object tiers**, split by natural lifetime: one per human, one
   per conversation (owns the log), one per task (owns exactly one sandbox).
   Keyed by session rather than user, so a conversation can have participants.
+- **The event is a discriminated union from the start**, even while `message` is
+  the only kind. The first use case is user-supplied messages (think Chat UI);
+  the kinds that follow are sub-agent operations, reports from background tasks,
+  and tool call output. The union's `Encoded` side is a SQLite row and its
+  `Type` side is the runtime event, as established at the Durable Object RPC
+  boundary — so adding a kind is a schema change and never a storage migration.
